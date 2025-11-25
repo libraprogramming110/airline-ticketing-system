@@ -1,2 +1,7 @@
-# Cursor IDE
-.cursor/
+node_modules
+.cursor
+.env.local
+.env*.local
+.next
+out
+dist
