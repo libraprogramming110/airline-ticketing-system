@@ -1,3 +1,4 @@
+// Blog page - coming soon
 export default function BlogPage() {
   return (
     <div className="min-h-screen bg-white px-8 py-16 text-[#001d45] md:px-16">
