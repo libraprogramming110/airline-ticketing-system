@@ -10,7 +10,7 @@ import {
 import { chooseIcon } from "@/lib/icons";
 
 const navLinks = [
-  { label: "Blog", href: "#" },
+  { label: "Blog", href: "/blog" },
   { label: "Sign In", href: "/sign-in" },
 ];
 
