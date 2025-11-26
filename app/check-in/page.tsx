@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Footer from "@/components/footer";
-import { FaCircleCheck, FaPlane } from "react-icons/fa6";
+import { FaPlane, FaCheck } from "react-icons/fa6";
 
 export default function CheckInPage() {
   return (
@@ -58,10 +58,12 @@ function CheckInInfoCard() {
         Fly easy and check in ahead of your flight!
       </h2>
 
-      <div className="space-y-6">
+        <div className="space-y-6">
         <div className="space-y-4">
-          <div className="flex items-start gap-3">
-            <FaCircleCheck className="mt-1 h-5 w-5 shrink-0 text-[#0047ab]" />
+          <div className="flex items-center gap-3">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#0047ab] text-white">
+              <FaCheck className="h-3.5 w-3.5" />
+            </span>
             <p className="text-sm text-[#4a5b82]">
               Online check-in is available from:
             </p>
@@ -94,8 +96,10 @@ function CheckInInfoCard() {
           </div>
         </div>
 
-        <div className="flex items-start gap-3">
-          <FaCircleCheck className="mt-1 h-5 w-5 shrink-0 text-[#0047ab]" />
+        <div className="flex items-center gap-3">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#0047ab] text-white">
+            <FaCheck className="h-3.5 w-3.5" />
+          </span>
           <p className="text-sm text-[#4a5b82]">
             You can make changes or buy add-ons for your flight after checking
             in.
