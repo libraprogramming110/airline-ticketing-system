@@ -77,16 +77,16 @@ function SupportSection() {
     <div className="space-y-4">
       <h4 className="text-lg font-semibold">Support</h4>
       <nav className="flex flex-col gap-2 text-sm text-white/80">
-        <a href="#" className="transition hover:text-white">
+        <a href="/help-center" className="transition hover:text-white">
           Help Center
         </a>
-        <a href="#" className="transition hover:text-white">
+        <a href="/faqs" className="transition hover:text-white">
           FAQs
         </a>
-        <a href="#" className="transition hover:text-white">
+        <a href="/contact-us" className="transition hover:text-white">
           Contact Us
         </a>
-        <a href="#" className="transition hover:text-white">
+        <a href="/terms-and-conditions" className="transition hover:text-white">
           Terms & Condition
         </a>
       </nav>
