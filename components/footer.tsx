@@ -64,7 +64,7 @@ function QuickLinksSection() {
         <a href="#" className="transition hover:text-white">
           Manage
         </a>
-        <a href="#" className="transition hover:text-white">
+        <a href="/blog" className="transition hover:text-white">
           Blog
         </a>
       </nav>
