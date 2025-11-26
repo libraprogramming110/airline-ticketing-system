@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
+// Trigger Vercel deployment
 
 import Footer from "@/components/footer";
 
