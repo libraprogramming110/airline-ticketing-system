@@ -18,14 +18,17 @@ const manageOptions = [
   {
     label: "Check in",
     icon: FaCircleCheck,
+    href: "/check-in",
   },
   {
     label: "Manage Booking",
     icon: FaClipboardList,
+    href: "/manage-booking",
   },
   {
     label: "Flight Status",
     icon: FaPaperPlane,
+    href: "/flight-status",
   },
 ];
 
@@ -81,10 +84,10 @@ export default function GetStartedPage() {
                 <div className="absolute left-1/2 top-full z-20 flex -translate-x-1/2 flex-col pt-4 opacity-0 pointer-events-none translate-y-2 transition group-hover:translate-y-0 group-hover:opacity-100 group-hover:pointer-events-auto group-hover:delay-100">
                   <div className="min-w-[360px] rounded-3xl bg-white/95 p-6 text-left text-[#001d45] shadow-[0_15px_45px_rgba(0,0,0,0.35)]">
                     <div className="grid gap-6 md:grid-cols-3">
-                    {manageOptions.map(({ label, icon: Icon }) => (
+                    {manageOptions.map(({ label, icon: Icon, href }) => (
                       <a
                         key={label}
-                        href="#"
+                        href={href}
                         className="flex flex-col items-center gap-3 text-center transition hover:text-[#0047ab]"
                       >
                         <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#66B2FF]/50 text-[#0047ab]">
