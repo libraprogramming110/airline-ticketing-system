@@ -1,5 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
+import { FaPlane } from "react-icons/fa6";
+
 const stats = [
   { label: "Total Flights", value: "150", accent: "#66B2FF" },
   { label: "Total Bookings", value: "200", accent: "#FFE008" },
@@ -18,10 +20,11 @@ const salesSummary = [
 ];
 
 const flights = [
-  { number: "MSU101", date: "Dec 15, 2025", passenger: "Amber Miguel Malinis", seat: "14A", status: "Paid" },
-  { number: "MSU101", date: "Dec 15, 2025", passenger: "Alijah Salmorin", seat: "15C", status: "Paid" },
-  { number: "MSU102", date: "Jan 5, 2026", passenger: "Junnel Francis Jonson", seat: "15D", status: "Pending" },
-  { number: "MSU102", date: "Jan 5, 2026", passenger: "Mohammad Zulkifli", seat: "8B", status: "Paid" },
+  { number: "PSCX", date: "Dec 2, 2025", passenger: "Amber Miguel Malinis", seat: "14A", status: "Paid" },
+  { number: "PSCX", date: "Dec 2, 2025", passenger: "Aliyah Salmorin", seat: "15C", status: "Paid" },
+  { number: "PSCX", date: "Dec 2, 2025", passenger: "Junnel Francis Jonson", seat: "15D", status: "Pending" },
+  { number: "PSCX", date: "Dec 2, 2025", passenger: "Mohammad Zulkifli", seat: "8B", status: "Paid" },
+  { number: "PSCX", date: "Dec 2, 2025", passenger: "Hosni Palantig", seat: "12E", status: "Pending" },
 ];
 
 const recentBookings = [
@@ -74,7 +77,7 @@ function Sidebar() {
       </div>
 
       <nav className="flex flex-1 flex-col gap-4 text-sm font-semibold">
-        {["Home", "Manage Bookings", "Manage Flights", "Reports", "Profile", "Log out"].map((item) => (
+        {["Home", "Booking", "Flights", "Reports", "Profile", "Log out"].map((item) => (
           <a
             key={item}
             href="#"
@@ -90,8 +93,8 @@ function Sidebar() {
 
 function Header() {
   return (
-    <header className="border-b border-[#dbe5ff] bg-white px-8 py-6 shadow-sm">
-      <img src="/airline-logo.svg" alt="Omnira Administration" className="h-10 w-auto" />
+    <header className="border-b border-[#dbe5ff] bg-white px-8 py-4 shadow-sm">
+      <img src="/airline-logo2.svg" alt="Omnira Administration" className="h-14 w-auto" />
     </header>
   );
 }
@@ -236,15 +239,7 @@ function RecentBookings() {
             >
               <div className="grid grid-cols-1 gap-4 md:grid-cols-[auto_1fr_1fr_1fr_1fr] md:gap-6">
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#66B2FF]/20 text-[#0047ab]">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="m3 14 8-2.5V4a1 1 0 0 1 1.6-.8l2.4 1.8L20 4v5l-5 3 5 1.5v4.5l-5-2.5-2.4 1.8a1 1 0 0 1-1.6-.8v-5l-8 2.5Z"
-                      stroke="#0047ab"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                  <FaPlane className="h-5 w-5" />
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs font-semibold text-[#6c7aa5]">Flight Number</p>
