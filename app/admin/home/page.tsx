@@ -83,7 +83,9 @@ function Sidebar() {
               ? "/admin/home"
               : item === "Booking"
                 ? "/admin/booking"
-                : "#";
+                : item === "Flights"
+                  ? "/admin/flights"
+                  : "#";
           return (
             <a
               key={item}
@@ -188,7 +190,7 @@ function FlightsPanel() {
     <section className="space-y-6">
       <div className="flex h-[520px] flex-col rounded-3xl bg-white shadow-sm">
         <header className="rounded-t-3xl bg-[#0b5ed7] px-6 py-4 text-white">
-          <h2 className="text-lg font-semibold">Bookings</h2>
+          <h2 className="text-lg font-semibold">Flights</h2>
         </header>
         <div className="flex-1 overflow-x-auto overflow-y-auto px-4 py-4">
           <div className="hidden grid-cols-[1fr_1.2fr_2fr_0.8fr_1fr] gap-4 px-4 py-2 text-xs font-semibold text-[#6c7aa5] md:grid">
@@ -232,7 +234,7 @@ function RecentBookings() {
   return (
     <section className="mt-8 rounded-3xl bg-white shadow-sm">
       <header className="rounded-t-3xl bg-[#0b5ed7] px-6 py-4 text-white">
-        <h2 className="text-lg font-semibold">Flights Schedules</h2>
+        <h2 className="text-lg font-semibold">Recent Bookings</h2>
       </header>
       <div className="space-y-4 px-6 py-6">
         {recentBookings.map((booking, index) => {
