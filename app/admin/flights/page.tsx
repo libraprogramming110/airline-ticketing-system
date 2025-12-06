@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 
-import { FaPlane, FaPencil, FaTrash } from "react-icons/fa6";
+import { FaPlane, FaPenToSquare, FaTrash } from "react-icons/fa6";
 
 const flights = [
   {
@@ -139,7 +139,7 @@ function FlightCard({ flight }: { flight: (typeof flights)[0] }) {
       </div>
       <div className="flex items-center gap-3">
         <button className="flex h-8 w-8 items-center justify-center rounded-lg text-[#0b5ed7] transition hover:bg-[#0b5ed7]/10">
-          <FaPencil className="h-4 w-4" />
+          <FaPenToSquare className="h-4 w-4" />
         </button>
         <button className="flex h-8 w-8 items-center justify-center rounded-lg text-[#FF3030] transition hover:bg-[#FF3030]/10">
           <FaTrash className="h-4 w-4" />
