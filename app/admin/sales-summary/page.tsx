@@ -45,15 +45,27 @@ function Sidebar() {
       </div>
 
       <nav className="flex flex-1 flex-col gap-4 text-sm font-semibold">
-        {["Home", "Booking", "Flights", "Reports", "Profile", "Log out"].map((item) => (
-          <a
-            key={item}
-            href={item === "Home" ? "/admin" : item === "Reports" ? "/admin/sales-summary" : "#"}
-            className={`rounded-md px-3 py-2 transition hover:bg-white/10 ${item === "Reports" ? "bg-white/10" : ""}`}
-          >
-            {item}
-          </a>
-        ))}
+        {["Home", "Booking", "Flights", "Reports", "Profile", "Log out"].map((item) => {
+          const href =
+            item === "Home"
+              ? "/admin/home"
+              : item === "Booking"
+                ? "/admin/booking"
+                : item === "Flights"
+                  ? "/admin/flights"
+                  : item === "Reports"
+                    ? "/admin/sales-summary"
+                    : "#";
+          return (
+            <a
+              key={item}
+              href={href}
+              className={`rounded-md px-3 py-2 transition hover:bg-white/10 ${item === "Reports" ? "bg-white/10" : ""}`}
+            >
+              {item}
+            </a>
+          );
+        })}
       </nav>
     </aside>
   );
