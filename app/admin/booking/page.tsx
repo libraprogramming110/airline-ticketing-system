@@ -72,7 +72,7 @@ function BookingManifest() {
               <FaMagnifyingGlass className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white" />
               <input
                 type="text"
-                placeholder="Search passenger, flight, seat..."
+                placeholder="Search date, seat, payment..."
                 className="w-full rounded-lg border border-white/20 bg-white/10 px-10 py-2 text-sm text-white placeholder:text-white/60 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
               />
             </div>
@@ -93,7 +93,7 @@ function BookingManifest() {
         </div>
       </div>
       <div className="overflow-x-auto px-4 py-4">
-        <div className="hidden grid-cols-[1fr_1.2fr_2fr_0.8fr_1fr] gap-4 bg-[#eef2ff] px-4 py-3 text-xs font-semibold text-[#6c7aa5] md:grid">
+        <div className="hidden grid-cols-[1fr_1.2fr_2fr_0.8fr_1fr] gap-4 bg-[#eef2ff] px-4 py-3 text-base font-semibold text-[#6c7aa5] md:grid">
           <p>Flight No.</p>
           <p>Date</p>
           <p>Passenger Name</p>
