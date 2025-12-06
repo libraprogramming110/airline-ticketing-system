@@ -119,28 +119,33 @@ function AdminFinancialOverview() {
 }
 
 const salesGridTemplate =
-  "md:grid-cols-[minmax(180px,1.4fr)_minmax(100px,0.6fr)_minmax(120px,0.7fr)_minmax(100px,0.6fr)_minmax(180px,1.6fr)]";
+  "md:grid-cols-[minmax(180px,1.4fr)_minmax(110px,0.7fr)_minmax(140px,0.8fr)_minmax(110px,0.7fr)_minmax(160px,1.4fr)]";
 
 function PeriodWiseBreakdown({ total }: { total: { total: number; paid: number } }) {
   return (
-    <div>
-      <div className="mb-4 flex items-center gap-2">
-        <FaCalendar className="h-4 w-4 text-[#6c7aa5]" />
-        <h3 className="text-base font-semibold text-[#001d45]">Period-wise Breakdown</h3>
+    <div className="overflow-hidden rounded-lg border border-[#eef2ff] bg-white shadow-sm">
+      <div className="bg-[#66B2FF] px-6 py-3">
+        <div className="flex items-center gap-2">
+          <FaCalendar className="h-4 w-4 text-white" />
+          <h3 className="text-base font-semibold text-white">Period-wise Breakdown</h3>
+        </div>
       </div>
       <div className="overflow-x-auto">
-        <div className={`hidden gap-4 px-4 py-2 text-xs font-semibold text-[#6c7aa5] md:grid ${salesGridTemplate}`}>
+        <div
+          className={`hidden gap-4 px-6 py-3 text-xs font-semibold text-[#001d45] md:grid ${salesGridTemplate}`}
+          style={{ backgroundColor: "rgba(102, 178, 255, 0.5)" }}
+        >
           <p>Period</p>
           <p className="text-center">Total Bookings</p>
           <p className="text-center">Successful Payments</p>
           <p className="text-center">Success Rate</p>
-          <p>Total Revenue</p>
+          <p className="text-right">Total Revenue</p>
         </div>
-        <div className="mt-2 overflow-hidden rounded-2xl border border-[#eef2ff] bg-white text-sm text-[#001d45]">
+        <div className="text-sm text-[#001d45]">
           {periodData.map((row, index) => (
             <div
               key={`${row.period}-${row.revenue}-${index}`}
-              className={`grid grid-cols-1 gap-x-4 gap-y-2 px-4 py-3 ${salesGridTemplate} ${index !== 0 ? "border-t border-[#eef2ff]" : ""}`}
+              className={`grid grid-cols-1 gap-x-4 gap-y-2 px-6 py-3 ${salesGridTemplate} ${index !== 0 ? "border-t border-[#eef2ff]" : ""}`}
             >
               <p className="font-semibold md:font-normal">{row.period}</p>
               <p className="md:text-center">{row.total}</p>
@@ -150,11 +155,11 @@ function PeriodWiseBreakdown({ total }: { total: { total: number; paid: number }
                   {row.rate}
                 </span>
               </div>
-              <p className="font-semibold md:font-normal md:whitespace-nowrap">{row.revenue}</p>
+              <p className="font-semibold text-right md:font-normal md:whitespace-nowrap">{row.revenue}</p>
             </div>
           ))}
           <div
-            className={`grid grid-cols-1 gap-x-4 gap-y-2 bg-[#f8faff] px-4 py-3 font-semibold ${salesGridTemplate} border-t border-[#eef2ff]`}
+            className={`grid grid-cols-1 gap-x-4 gap-y-2 bg-[#f8faff] px-6 py-3 font-semibold ${salesGridTemplate} border-t border-[#eef2ff]`}
           >
             <p>Total</p>
             <p className="md:text-center">{total.total}</p>
@@ -164,7 +169,7 @@ function PeriodWiseBreakdown({ total }: { total: { total: number; paid: number }
                 95.4%
               </span>
             </div>
-            <p className="md:whitespace-nowrap">₱2,565,900.00</p>
+            <p className="text-right md:whitespace-nowrap">₱2,565,900.00</p>
           </div>
         </div>
       </div>
