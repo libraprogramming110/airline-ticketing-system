@@ -79,7 +79,13 @@ function Sidebar() {
       <nav className="flex flex-1 flex-col gap-4 text-sm font-semibold">
         {["Home", "Booking", "Flights", "Reports", "Profile", "Log out"].map((item) => {
           const href =
-            item === "Home" ? "/admin/home" : item === "Flights" ? "/admin/flights" : "#";
+            item === "Home"
+              ? "/admin/home"
+              : item === "Booking"
+                ? "/admin/booking"
+                : item === "Flights"
+                  ? "/admin/flights"
+                  : "#";
           return (
             <a
               key={item}
