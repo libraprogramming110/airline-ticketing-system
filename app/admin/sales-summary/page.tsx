@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { FaDownload, FaCalendar } from "react-icons/fa6";
+import AdminSidebar from "@/components/admin-sidebar";
 
 const stats = [
   { label: "Total Flights", value: "150", accent: "#66B2FF" },
@@ -22,7 +23,7 @@ const periodData = [
 export default function AdminSalesSummaryPage() {
   return (
     <div className="flex min-h-screen bg-[#0b1324] text-[#001d45]">
-      <Sidebar />
+      <AdminSidebar activePage="reports" />
       <main className="flex-1 overflow-y-auto bg-[#f5f7fb]">
         <Header />
         <section className="px-8 pb-16 pt-8">
@@ -33,45 +34,6 @@ export default function AdminSalesSummaryPage() {
   );
 }
 
-function Sidebar() {
-  return (
-    <aside className="sticky top-0 flex h-screen w-64 flex-col gap-8 border-r border-white/10 bg-gradient-to-b from-[#081024] to-[#02050e] px-6 py-10 text-white">
-      <div className="flex flex-col items-center text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10 text-2xl font-semibold">
-          JC
-        </div>
-        <p className="mt-4 text-base font-semibold">John Carlo Cruz</p>
-        <p className="text-sm text-white/60">@johncarlocruz</p>
-      </div>
-
-      <nav className="flex flex-1 flex-col gap-4 text-sm font-semibold">
-        {["Home", "Booking", "Flights", "Reports", "Profile", "Log out"].map((item) => {
-          const href =
-            item === "Home"
-              ? "/admin/home"
-              : item === "Booking"
-                ? "/admin/booking"
-                : item === "Flights"
-                  ? "/admin/flights"
-                  : item === "Reports"
-                    ? "/admin/sales-summary"
-                    : item === "Profile"
-                      ? "/admin/profile"
-                      : "#";
-          return (
-            <a
-              key={item}
-              href={href}
-              className={`rounded-md px-3 py-2 transition hover:bg-white/10 ${item === "Reports" ? "bg-white/10" : ""}`}
-            >
-              {item}
-            </a>
-          );
-        })}
-      </nav>
-    </aside>
-  );
-}
 
 function Header() {
   return (
