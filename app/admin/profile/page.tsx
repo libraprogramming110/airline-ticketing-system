@@ -1,5 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 
+"use client";
+
+import { useState } from "react";
+import Flag from "react-flagkit";
+import { FaPenToSquare, FaTrash } from "react-icons/fa6";
+
 const contactOptions = [
   { label: "Personal Information", active: true },
   { label: "Change Password", active: false },
@@ -32,15 +38,29 @@ function Sidebar() {
       </div>
 
       <nav className="flex flex-1 flex-col gap-4 text-sm font-semibold">
-        {["Home", "Bookings", "Flights", "Reports", "Profile", "Log out"].map((item) => (
-          <a
-            key={item}
-            href={item === "Home" ? "/admin" : item === "Profile" ? "/admin/profile" : "#"}
-            className={`rounded-md px-3 py-2 transition hover:bg-white/10 ${item === "Profile" ? "bg-white/10" : ""}`}
-          >
-            {item}
-          </a>
-        ))}
+        {["Home", "Booking", "Flights", "Reports", "Profile", "Log out"].map((item) => {
+          const href =
+            item === "Home"
+              ? "/admin/home"
+              : item === "Booking"
+                ? "/admin/booking"
+                : item === "Flights"
+                  ? "/admin/flights"
+                  : item === "Reports"
+                    ? "/admin/sales-summary"
+                    : item === "Profile"
+                      ? "/admin/profile"
+                      : "#";
+          return (
+            <a
+              key={item}
+              href={href}
+              className={`rounded-md px-3 py-2 transition hover:bg-white/10 ${item === "Profile" ? "bg-white/10" : ""}`}
+            >
+              {item}
+            </a>
+          );
+        })}
       </nav>
     </aside>
   );
@@ -66,13 +86,7 @@ function ProfileContent() {
 function ProfileCard() {
   return (
     <article className="rounded-3xl bg-white p-6 text-center shadow-sm">
-      <div className="mx-auto h-36 w-36 overflow-hidden rounded-full border-4 border-white shadow-md">
-        <img
-          src="https://via.placeholder.com/150"
-          alt="Profile placeholder"
-          className="h-full w-full object-cover"
-        />
-      </div>
+      <ProfileImage />
       <h2 className="mt-4 text-xl font-semibold text-[#001d45]">John Carlo Cruz</h2>
       <p className="text-sm text-[#6c7aa5]">Customer Service Lead</p>
       <div className="mt-6 space-y-3">
@@ -88,6 +102,56 @@ function ProfileCard() {
         ))}
       </div>
     </article>
+  );
+}
+
+function ProfileImage() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        onClick={() => setIsModalOpen(true)}
+        className="mx-auto block h-36 w-36 overflow-hidden rounded-full border-4 border-white shadow-md transition-transform hover:scale-105"
+      >
+        <img
+          src="/img/background.svg"
+          alt="Profile picture"
+          className="h-full w-full object-cover"
+        />
+      </button>
+
+      {isModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div
+            className="relative flex max-w-2xl flex-col items-center gap-6 rounded-3xl bg-white p-8 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="h-64 w-64 overflow-hidden rounded-full border-4 border-white shadow-lg">
+              <img
+                src="/img/background.svg"
+                alt="Profile picture"
+                className="h-full w-full object-cover"
+              />
+            </div>
+
+            <div className="flex gap-4">
+              <button className="flex items-center gap-2 rounded-lg bg-[#0b5ed7] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#094fb4]">
+                <FaPenToSquare className="h-4 w-4" />
+                <span>Edit</span>
+              </button>
+              <button className="flex items-center gap-2 rounded-lg bg-[#FF3030] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#e02929]">
+                <FaTrash className="h-4 w-4" />
+                <span>Delete Image</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -114,12 +178,26 @@ function PersonalInformationForm() {
           {personalFields.map((field) => (
             <label key={field.label} className="space-y-2 text-sm">
               <span className="text-[#6c7aa5]">{field.label}</span>
-              <input
-                type="text"
-                value={field.value}
-                readOnly
-                className="w-full rounded-lg border border-[#dbe5ff] bg-white px-4 py-2 text-sm text-[#001d45] placeholder:text-[#9aa6c1]"
-              />
+              {field.label === "Phone Number" ? (
+                <div className="flex items-center gap-2 rounded-lg border border-[#dbe5ff] bg-white px-4 py-2">
+                  <div className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full shrink-0">
+                    <Flag country="PH" size={20} />
+                  </div>
+                  <input
+                    type="text"
+                    value={field.value}
+                    readOnly
+                    className="flex-1 bg-transparent text-sm text-[#001d45] placeholder:text-[#9aa6c1] outline-none"
+                  />
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  value={field.value}
+                  readOnly
+                  className="w-full rounded-lg border border-[#dbe5ff] bg-white px-4 py-2 text-sm text-[#001d45] placeholder:text-[#9aa6c1]"
+                />
+              )}
             </label>
           ))}
         </div>
