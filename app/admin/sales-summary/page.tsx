@@ -55,7 +55,9 @@ function Sidebar() {
                   ? "/admin/flights"
                   : item === "Reports"
                     ? "/admin/sales-summary"
-                    : "#";
+                    : item === "Profile"
+                      ? "/admin/profile"
+                      : "#";
           return (
             <a
               key={item}
