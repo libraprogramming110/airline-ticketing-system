@@ -170,7 +170,6 @@ export default async function SearchFlightsPage({
         datePrices={datePrices}
         adults={adults}
         children={children}
-        isSelectingReturn={isSelectingReturn}
       />
       <FlightFiltersAndResults 
         flights={flightsToShow} 
