@@ -120,10 +120,10 @@ export default async function SearchFlightsPage({
   const children = parseInt(params.children || "0");
   const passengerCount = adults + children;
 
-  let departingFlights = [];
-  let returningFlights = [];
-  let datePrices = [];
-  let flightsToShow = [];
+  let departingFlights: any[] = [];
+  let returningFlights: any[] = [];
+  let datePrices: Array<{ date: string; lowest_price: number }> = [];
+  let flightsToShow: any[] = [];
 
   if (origin && destination && departureDate) {
     try {
