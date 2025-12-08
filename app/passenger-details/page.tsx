@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import airports from "@/lib/data/airports.json";
 import BookingProgressIndicator from "@/components/booking-progress-indicator";
@@ -24,6 +24,14 @@ import {
 import Flag from "react-flagkit";
 
 export default function PassengerDetailsPage() {
+  return (
+    <Suspense fallback={<div className="p-4 text-[#001d45]">Loading passenger details...</div>}>
+      <PassengerDetailsContent />
+    </Suspense>
+  );
+}
+
+function PassengerDetailsContent() {
   const searchParams = useSearchParams();
   
   // Round trip: has both departure and return flight IDs

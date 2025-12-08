@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import BookingProgressIndicator from "@/components/booking-progress-indicator";
 import SeatSelectionModal from "@/components/seat-selection-modal";
@@ -24,6 +24,14 @@ import {
 } from "react-icons/fa6";
 
 export default function AddOnsPage() {
+  return (
+    <Suspense fallback={<div className="p-4 text-[#001d45]">Loading add-ons...</div>}>
+      <AddOnsPageContent />
+    </Suspense>
+  );
+}
+
+function AddOnsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   

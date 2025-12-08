@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import BookingProgressIndicator from "@/components/booking-progress-indicator";
@@ -28,7 +28,19 @@ export default function ConfirmationPage() {
     <div className="min-h-screen bg-[#f5f7fb]">
       <HeaderSection />
       <BookingProgressIndicator currentStep={4} />
-      <ConfirmationContent />
+      <Suspense
+        fallback={
+          <div className="bg-[#f5f7fb] px-8 py-12 md:px-16">
+            <div className="mx-auto max-w-7xl">
+              <div className="rounded-lg bg-white p-8 text-center">
+                <p className="text-lg text-[#6c7aa5]">Loading booking details...</p>
+              </div>
+            </div>
+          </div>
+        }
+      >
+        <ConfirmationContent />
+      </Suspense>
     </div>
   );
 }
