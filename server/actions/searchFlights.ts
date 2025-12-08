@@ -54,9 +54,10 @@ export async function searchFlightsAction(formData: FormData) {
     };
   } catch (error) {
     if (error instanceof z.ZodError) {
+      const firstIssue = error.issues[0];
       return {
         success: false,
-        error: error.errors[0].message,
+        error: firstIssue?.message ?? 'Invalid flight search',
       };
     }
 
