@@ -1,0 +1,52 @@
+{
+  "aircraft": {
+    "name": "Standard Aircraft",
+    "configurations": {
+      "first": {
+        "rows": 5,
+        "seatsPerRow": 2,
+        "layout": "1-1",
+        "startRow": 1,
+        "endRow": 5,
+        "seatLetters": ["A", "B"]
+      },
+      "business": {
+        "rows": 10,
+        "seatsPerRow": 2,
+        "layout": "2-2",
+        "startRow": 6,
+        "endRow": 15,
+        "seatLetters": ["A", "B", "C", "D"]
+      },
+      "economy": {
+        "rows": 25,
+        "seatsPerRow": 6,
+        "layout": "3-3",
+        "startRow": 16,
+        "endRow": 40,
+        "seatLetters": ["A", "B", "C", "D", "E", "F"]
+      }
+    },
+    "specialMarkers": {
+      "restrooms": [
+        { "position": "front-left", "row": 5 },
+        { "position": "front-right", "row": 5 },
+        { "position": "mid-left", "row": 20 },
+        { "position": "mid-right", "row": 20 },
+        { "position": "rear-left", "row": 35 },
+        { "position": "rear-right", "row": 35 }
+      ],
+      "exits": [
+        { "position": "front-left", "row": 5 },
+        { "position": "wing-left", "row": 15 },
+        { "position": "wing-right", "row": 15 },
+        { "position": "rear-left", "row": 35 }
+      ]
+    }
+  }
+}
+
+
+
+
+

@@ -1,13 +1,12 @@
 "use client";
 
-import { FaFacebook, FaGoogle } from "react-icons/fa6";
+import { FaEye } from "react-icons/fa6";
 
 export default function SignInForm() {
   return (
     <section className="w-full max-w-lg rounded-3xl bg-white p-8 text-[#001d45] shadow-[0_25px_45px_rgba(0,0,0,0.35)]">
       <FormHeader />
       <SignInFormFields />
-      <SocialLoginSection />
       <CreateAccountLink />
     </section>
   );
@@ -57,7 +56,7 @@ function PasswordField() {
           className="w-full rounded-xl border border-[#dbe5ff] px-4 py-3 text-base pr-10 outline-none transition focus:border-[#0047ab]"
         />
         <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[#8a96b7]">
-          👁️
+          <FaEye className="h-5 w-5" />
         </span>
       </div>
     </label>
@@ -89,29 +88,11 @@ function SignInButton() {
   );
 }
 
-function SocialLoginSection() {
-  return (
-    <>
-      <div className="mt-6 text-center text-sm text-[#6c7aa5]">
-        Or log in with
-      </div>
-      <div className="mt-4 flex items-center justify-center gap-4">
-        <button className="flex h-12 w-12 items-center justify-center rounded-full border border-[#dbe5ff] text-[#0047ab]">
-          <FaFacebook className="h-5 w-5" aria-hidden="true" />
-        </button>
-        <button className="flex h-12 w-12 items-center justify-center rounded-full border border-[#dbe5ff] text-[#db4437]">
-          <FaGoogle className="h-5 w-5" aria-hidden="true" />
-        </button>
-      </div>
-    </>
-  );
-}
-
 function CreateAccountLink() {
   return (
     <div className="mt-6 text-center text-sm text-[#4a5b82]">
       Don&rsquo;t have an account?{" "}
-      <a href="#" className="font-semibold text-[#0047ab]">
+      <a href="/sign-up" className="font-semibold text-[#0047ab]">
         Create an account
       </a>
     </div>

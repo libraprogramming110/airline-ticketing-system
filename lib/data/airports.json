@@ -1,0 +1,83 @@
+[
+  {
+    "code": "MNL",
+    "name": "Manila",
+    "country": "Philippines"
+  },
+  {
+    "code": "CGY",
+    "name": "Cagayan de Oro",
+    "country": "Philippines"
+  },
+  {
+    "code": "CEB",
+    "name": "Cebu",
+    "country": "Philippines"
+  },
+  {
+    "code": "DVO",
+    "name": "Davao",
+    "country": "Philippines"
+  },
+  {
+    "code": "ILO",
+    "name": "Iloilo",
+    "country": "Philippines"
+  },
+  {
+    "code": "BKI",
+    "name": "Bacolod",
+    "country": "Philippines"
+  },
+  {
+    "code": "PPS",
+    "name": "Puerto Princesa",
+    "country": "Philippines"
+  },
+  {
+    "code": "TAG",
+    "name": "Tagbilaran",
+    "country": "Philippines"
+  },
+  {
+    "code": "ZAM",
+    "name": "Zamboanga",
+    "country": "Philippines"
+  },
+  {
+    "code": "BCD",
+    "name": "Bacolod-Silay",
+    "country": "Philippines"
+  },
+  {
+    "code": "TAC",
+    "name": "Tacloban",
+    "country": "Philippines"
+  },
+  {
+    "code": "KLO",
+    "name": "Kalibo",
+    "country": "Philippines"
+  },
+  {
+    "code": "OZC",
+    "name": "Ozamis",
+    "country": "Philippines"
+  },
+  {
+    "code": "PAG",
+    "name": "Pagadian",
+    "country": "Philippines"
+  },
+  {
+    "code": "DPL",
+    "name": "Dipolog",
+    "country": "Philippines"
+  },
+  {
+    "code": "CGM",
+    "name": "Camiguin",
+    "country": "Philippines"
+  }
+]
+
