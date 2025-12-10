@@ -18,18 +18,11 @@ const passengerSchema = z.object({
   }),
 });
 
+export type PassengerPayload = z.infer<typeof passengerSchema>;
+
 const savePassengersSchema = z.array(passengerSchema).min(1, 'At least one passenger is required');
 
-export async function savePassengersAction(passengers: Array<{
-  firstName: string;
-  lastName: string;
-  middleInitial?: string;
-  email: string;
-  contactNumber?: string;
-  sex: string;
-  birthDate: string;
-  passengerType: 'adult' | 'child';
-}>) {
+export async function savePassengersAction(passengers: PassengerPayload[]) {
   try {
     const validated = savePassengersSchema.parse(passengers);
 

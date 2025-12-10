@@ -6,7 +6,7 @@ import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import airports from "@/lib/data/airports.json";
 import BookingProgressIndicator from "@/components/booking-progress-indicator";
-import { savePassengersAction } from "@/server/actions/savePassengers";
+import { PassengerPayload, savePassengersAction } from "@/server/actions/savePassengers";
 import {
   FaUser,
   FaPlane,
@@ -893,8 +893,8 @@ function FormActionButtons({
     setIsSaving(true);
 
     try {
-      const passengersToSave = passengerInfos.map((passenger, index) => {
-        const passengerType = index < adults ? 'adult' : 'child';
+      const passengersToSave: PassengerPayload[] = passengerInfos.map((passenger, index) => {
+        const passengerType: PassengerPayload['passengerType'] = index < adults ? 'adult' : 'child';
         return {
           firstName: passenger.firstName.trim(),
           lastName: passenger.lastName.trim(),
