@@ -415,7 +415,7 @@ function PassengerBookingForm({
 
   const activePassenger = passengerInfos[activePassengerIndex] || passengerInfos[0];
 
-  const handlePassengerChange = (field: keyof PassengerInfo, value: string) => {
+  const handlePassengerChange = <K extends keyof PassengerInfo>(field: K, value: PassengerInfo[K]) => {
     setPassengerInfos((prev) =>
       prev.map((info, idx) => (idx === activePassengerIndex ? { ...info, [field]: value } : info))
     );
@@ -520,10 +520,10 @@ function PersonalInformationSection({
     middleInitial: string;
     contactNumber: string;
     email: string;
-    sex: string;
+    sex: PassengerPayload['sex'];
     birthDate: string;
   };
-  onChange: (field: keyof typeof passengerInfo, value: string) => void;
+  onChange: <K extends keyof typeof passengerInfo>(field: K, value: typeof passengerInfo[K]) => void;
   onPrev: () => void;
   onNext: () => void;
 }) {
@@ -607,7 +607,7 @@ function PersonalInformationSection({
             <select
               className="w-full appearance-none rounded-xl border border-[#dbe5ff] px-4 py-3 text-base outline-none transition focus:border-[#0047ab]"
               value={passengerInfo.sex}
-              onChange={(e) => onChange("sex", e.target.value)}
+              onChange={(e) => onChange("sex", e.target.value as PassengerPayload['sex'])}
             >
               <option>Male</option>
               <option>Female</option>
@@ -850,7 +850,7 @@ function FormActionButtons({
     middleInitial: string;
     contactNumber: string;
     email: string;
-    sex: string;
+    sex: PassengerPayload['sex'];
     birthDate: string;
   }>;
   adults: number;
