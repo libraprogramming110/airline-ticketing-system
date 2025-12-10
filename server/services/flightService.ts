@@ -23,20 +23,48 @@ export async function searchFlights(
   departureDate: string,
   passengerCount: number
 ) {
-  const { data, error } = await supabase
+  const { data: flights, error } = await supabase
     .from('flights')
-    .select('*')
+    .select('id, origin, destination, departure_date, departure_time, arrival_time, price, created_at, updated_at')
     .eq('origin', origin)
     .eq('destination', destination)
     .eq('departure_date', departureDate)
-    .gte('available_seats', passengerCount)
     .order('departure_time', { ascending: true });
 
   if (error) {
     throw new Error(`Failed to search flights: ${error.message}`);
   }
 
-  return data as Flight[];
+  if (!flights || flights.length === 0) {
+    return [];
+  }
+
+  const now = new Date().toISOString();
+  const flightsWithSeatCount: Flight[] = [];
+
+  for (const flight of flights) {
+    const { count, error: seatError } = await supabase
+      .from('seats')
+      .select('id', { count: 'exact', head: false })
+      .eq('flight_id', flight.id)
+      .or(`status.eq.available,and(status.eq.held,hold_expires_at.lt.${now})`);
+
+    if (seatError) {
+      console.error(`Failed to count seats for flight ${flight.id}:`, seatError);
+      continue;
+    }
+
+    const availableSeats = count || 0;
+
+    if (availableSeats >= passengerCount) {
+      flightsWithSeatCount.push({
+        ...flight,
+        available_seats: availableSeats,
+      });
+    }
+  }
+
+  return flightsWithSeatCount;
 }
 
 export async function getLowestPricesByDate(

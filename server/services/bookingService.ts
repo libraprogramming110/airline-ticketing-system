@@ -37,6 +37,15 @@ export type BookingDetails = {
     seatNumber: string;
     flightId: string;
   }>;
+  passengers: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    middleInitial: string | null;
+    email: string;
+    phone: string | null;
+    passengerType: string;
+  }>;
 };
 
 export async function calculateTotalAmount(
@@ -62,7 +71,8 @@ export async function lockSeats(
   returnSeatIds: string[],
   adultsCount: number,
   childrenCount: number,
-  totalAmount: number
+  totalAmount: number,
+  passengerIds?: string[]
 ): Promise<BookingResult> {
   const allSeatIds = [...departureSeatIds, ...returnSeatIds];
   
@@ -73,6 +83,7 @@ export async function lockSeats(
     p_children_count: childrenCount,
     p_total_amount: totalAmount,
     p_returning_flight_id: returningFlightId,
+    p_passenger_ids: passengerIds || null,
   });
 
   if (error) {
@@ -156,6 +167,28 @@ export async function getBookingByReference(bookingReference: string): Promise<B
     flightId: bs.seats?.flight_id || '',
   }));
 
+  const { data: bookingPassengers, error: passengersError } = await supabase
+    .from('booking_passengers')
+    .select(`
+      passenger_id,
+      passengers(*)
+    `)
+    .eq('booking_id', booking.id);
+
+  if (passengersError) {
+    throw new Error(`Failed to fetch passengers: ${passengersError.message}`);
+  }
+
+  const passengers = (bookingPassengers || []).map((bp: any) => ({
+    id: bp.passenger_id,
+    firstName: bp.passengers?.first_name || '',
+    lastName: bp.passengers?.last_name || '',
+    middleInitial: bp.passengers?.middle_initial || null,
+    email: bp.passengers?.email || '',
+    phone: bp.passengers?.phone || null,
+    passengerType: bp.passengers?.passenger_type || '',
+  }));
+
   return {
     id: booking.id,
     bookingReference: booking.booking_reference,
@@ -184,5 +217,6 @@ export async function getBookingByReference(bookingReference: string): Promise<B
       date: booking.returning_flight.departure_date,
     } : null,
     seats,
+    passengers,
   };
 }

@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase/server';
 import { z } from 'zod';
 
 const lockSeatsSchema = z.object({
-  seatIds: z.array(z.string().uuid()).min(1, 'At least one seat must be selected'),
+  seatIds: z.array(z.string().uuid()).default([]),
   departingFlightId: z.string().uuid('Invalid departing flight ID'),
   returningFlightId: z.string().uuid().nullable().optional(),
   adultsCount: z.number().min(1).max(10),
@@ -15,14 +15,14 @@ const lockSeatsSchema = z.object({
       id: z.string().uuid(),
       price: z.number().min(0),
     })
-  ),
+  ).default([]),
   selectedAddOns: z.array(
     z.object({
       name: z.string(),
       price: z.number().min(0),
       category: z.string(),
     })
-  ),
+  ).default([]),
 });
 
 export async function lockSeatsAction(formData: FormData) {
@@ -37,6 +37,7 @@ export async function lockSeatsAction(formData: FormData) {
       childrenCount: parseInt(formData.get('childrenCount') as string) || 0,
       selectedSeats: JSON.parse(formData.get('selectedSeats') as string),
       selectedAddOns: JSON.parse(formData.get('selectedAddOns') as string),
+      passengerIds: formData.get('passengerIds') ? JSON.parse(formData.get('passengerIds') as string) : [],
     };
 
     const validated = lockSeatsSchema.parse(rawData);
@@ -88,7 +89,8 @@ export async function lockSeatsAction(formData: FormData) {
       returnSeatIds,
       validated.adultsCount,
       validated.childrenCount,
-      totalAmount
+      totalAmount,
+      rawData.passengerIds.length > 0 ? rawData.passengerIds : undefined
     );
 
     return {

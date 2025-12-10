@@ -13,10 +13,22 @@ export async function getSeatsAction(flightId: string, cabinClass?: string) {
     const validated = getSeatsSchema.parse({ flightId, cabinClass });
 
     const seats = await getSeatsByFlight(validated.flightId, validated.cabinClass);
+    const now = new Date().toISOString();
+    const normalizedSeats = (seats || []).map((seat) => {
+      const isExpiredHold =
+        seat.status === 'held' &&
+        seat.hold_expires_at &&
+        seat.hold_expires_at < now;
+
+      return {
+        ...seat,
+        status: isExpiredHold ? 'available' : seat.status,
+      };
+    });
 
     return {
       success: true,
-      seats,
+      seats: normalizedSeats,
     };
   } catch (error) {
     if (error instanceof z.ZodError) {

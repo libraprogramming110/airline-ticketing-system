@@ -2,11 +2,13 @@
 
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState, Suspense, useRef } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import BookingProgressIndicator from "@/components/booking-progress-indicator";
 import { getBookingAction } from "@/server/actions/getBooking";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import {
   FaCheck,
   FaPlane,
@@ -20,6 +22,8 @@ import {
   FaClipboardList,
   FaPaperPlane,
   FaUser,
+  FaChevronLeft,
+  FaChevronRight,
 } from "react-icons/fa6";
 import type { BookingDetails } from "@/server/services/bookingService";
 
@@ -142,6 +146,8 @@ function ConfirmationContent() {
   const [booking, setBooking] = useState<BookingDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPassengerIndex, setCurrentPassengerIndex] = useState(0);
+  const printContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function fetchBooking() {
@@ -193,13 +199,112 @@ function ConfirmationContent() {
     );
   }
 
+  const totalPassengers = booking.passengers.length || 1;
+  const currentPassenger = booking.passengers[currentPassengerIndex] || null;
+
+  const goToPreviousPassenger = () => {
+    setCurrentPassengerIndex((prev) => (prev > 0 ? prev - 1 : totalPassengers - 1));
+  };
+
+  const goToNextPassenger = () => {
+    setCurrentPassengerIndex((prev) => (prev < totalPassengers - 1 ? prev + 1 : 0));
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!printContentRef.current) return;
+
+    try {
+      const canvas = await html2canvas(printContentRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        onclone: (clonedDoc) => {
+          const clonedElement = clonedDoc.querySelector('[data-print-content]') as HTMLElement;
+          if (clonedElement) {
+            const allElements = clonedElement.querySelectorAll('*');
+            allElements.forEach((el) => {
+              const htmlEl = el as HTMLElement;
+              const styles = window.getComputedStyle(htmlEl);
+              
+              const bgColor = styles.backgroundColor;
+              const color = styles.color;
+              const borderColor = styles.borderColor;
+              
+              if (bgColor && (bgColor.includes('lab') || bgColor.includes('oklab') || bgColor.includes('lch'))) {
+                htmlEl.style.backgroundColor = '#ffffff';
+              }
+              if (color && (color.includes('lab') || color.includes('oklab') || color.includes('lch'))) {
+                htmlEl.style.color = '#000000';
+              }
+              if (borderColor && (borderColor.includes('lab') || borderColor.includes('oklab') || borderColor.includes('lch'))) {
+                htmlEl.style.borderColor = '#cccccc';
+              }
+            });
+          }
+        },
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgY = 10;
+
+      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+      
+      const passengerName = currentPassenger 
+        ? `${currentPassenger.firstName}_${currentPassenger.lastName}`.replace(/\s+/g, '_')
+        : 'Guest';
+      pdf.save(`Booking_${booking.bookingReference}_${passengerName}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    }
+  };
+
+  const handlePrintTicket = () => {
+    window.print();
+  };
+
   return (
     <div className="bg-[#f5f7fb] px-8 py-12 md:px-16">
       <div className="mx-auto max-w-7xl space-y-8">
-        <BookingConfirmedMessage />
-        <ConfirmationDetailsSection booking={booking} />
-        <BoardingPassCard />
-        <ConfirmationActionButtons />
+        <div className="no-print">
+          <BookingConfirmedMessage />
+          {totalPassengers > 1 && (
+            <PassengerNavigation
+              currentIndex={currentPassengerIndex}
+              totalPassengers={totalPassengers}
+              onPrevious={goToPreviousPassenger}
+              onNext={goToNextPassenger}
+              passengerName={currentPassenger ? `${currentPassenger.firstName} ${currentPassenger.lastName}` : 'Guest Passenger'}
+            />
+          )}
+        </div>
+        <div ref={printContentRef} className="print-content" data-print-content>
+        <ConfirmationDetailsSection 
+          booking={booking} 
+          currentPassenger={currentPassenger}
+        />
+          <BoardingPassCard 
+            bookingReference={booking.bookingReference}
+            passengerName={currentPassenger ? `${currentPassenger.firstName} ${currentPassenger.lastName}` : 'Guest Passenger'}
+            passengerIndex={currentPassengerIndex}
+            totalPassengers={totalPassengers}
+          />
+        </div>
+        <div className="no-print">
+          <ConfirmationActionButtons 
+            onDownloadPDF={handleDownloadPDF}
+            onPrintTicket={handlePrintTicket}
+          />
+        </div>
       </div>
     </div>
   );
@@ -223,7 +328,63 @@ function BookingConfirmedMessage() {
   );
 }
 
-function ConfirmationDetailsSection({ booking }: { booking: BookingDetails }) {
+function PassengerNavigation({
+  currentIndex,
+  totalPassengers,
+  onPrevious,
+  onNext,
+  passengerName,
+}: {
+  currentIndex: number;
+  totalPassengers: number;
+  onPrevious: () => void;
+  onNext: () => void;
+  passengerName: string;
+}) {
+  return (
+    <div className="rounded-lg bg-white shadow-md p-6">
+      <div className="flex items-center justify-between">
+        <button
+          onClick={onPrevious}
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-[#eef2ff] text-[#0047ab] transition hover:bg-[#0047ab] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0047ab]"
+          aria-label="Previous passenger"
+        >
+          <FaChevronLeft className="h-5 w-5" />
+        </button>
+        <div className="flex-1 text-center px-4">
+          <p className="text-sm text-[#6c7aa5]">Passenger</p>
+          <p className="text-lg font-bold text-[#001d45]">{passengerName}</p>
+          <p className="text-xs text-[#6c7aa5] mt-1">
+            {currentIndex + 1} of {totalPassengers}
+          </p>
+        </div>
+        <button
+          onClick={onNext}
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-[#eef2ff] text-[#0047ab] transition hover:bg-[#0047ab] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0047ab]"
+          aria-label="Next passenger"
+        >
+          <FaChevronRight className="h-5 w-5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmationDetailsSection({ 
+  booking,
+  currentPassenger,
+}: { 
+  booking: BookingDetails;
+  currentPassenger: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    middleInitial: string | null;
+    email: string;
+    phone: string | null;
+    passengerType: string;
+  } | null;
+}) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -247,6 +408,19 @@ function ConfirmationDetailsSection({ booking }: { booking: BookingDetails }) {
     ? booking.seats.filter(s => s.flightId === booking.returningFlight!.id)
     : [];
 
+  const formatPassengerName = (passenger: { firstName: string; lastName: string; middleInitial: string | null }) => {
+    const middle = passenger.middleInitial ? ` ${passenger.middleInitial}.` : '';
+    return `${passenger.firstName}${middle} ${passenger.lastName}`;
+  };
+
+  const currentPassengerName = currentPassenger 
+    ? formatPassengerName(currentPassenger)
+    : 'Guest Passenger';
+
+  const primaryPassenger = booking.passengers.length > 0 ? booking.passengers[0] : null;
+  const contactEmail = primaryPassenger?.email || '';
+  const contactPhone = primaryPassenger?.phone || '';
+
   return (
     <div className="rounded-lg bg-white shadow-md overflow-hidden">
       <ConfirmationDetailsHeader />
@@ -258,7 +432,7 @@ function ConfirmationDetailsSection({ booking }: { booking: BookingDetails }) {
           from={booking.departingFlight.origin}
           to={booking.departingFlight.destination}
           flightNumber={booking.departingFlight.flightNumber}
-          passengerName="Guest Passenger"
+          passengerName={currentPassengerName}
           departureDate={formatDate(booking.departingFlight.date)}
           departureTime={formatTime(booking.departingFlight.departureTime)}
           arrivalDate={formatDate(booking.departingFlight.date)}
@@ -274,7 +448,7 @@ function ConfirmationDetailsSection({ booking }: { booking: BookingDetails }) {
               from={booking.returningFlight.origin}
               to={booking.returningFlight.destination}
               flightNumber={booking.returningFlight.flightNumber}
-              passengerName="Guest Passenger"
+              passengerName={currentPassengerName}
               departureDate={formatDate(booking.returningFlight.date)}
               departureTime={formatTime(booking.returningFlight.departureTime)}
               arrivalDate={formatDate(booking.returningFlight.date)}
@@ -285,7 +459,7 @@ function ConfirmationDetailsSection({ booking }: { booking: BookingDetails }) {
           </>
         )}
         <div className="border-t border-dashed border-[#dbe5ff]" />
-        <ContactInfoSection />
+        <ContactInfoSection email={contactEmail} phone={contactPhone} />
         <PaymentMethodSection paymentMethod={booking.paymentMethod || 'N/A'} />
         <ImportantInfoSection />
       </div>
@@ -431,7 +605,7 @@ function InfoCard({
   );
 }
 
-function ContactInfoSection() {
+function ContactInfoSection({ email, phone }: { email: string; phone: string }) {
   return (
     <div className="space-y-3">
       <h3 className="text-lg font-bold text-[#001d45]">Contact Information</h3>
@@ -441,7 +615,7 @@ function ContactInfoSection() {
           <div>
             <p className="text-xs text-[#6c7aa5]">Email</p>
             <p className="text-sm font-semibold text-[#0047ab]">
-              ambermiguel@gmail.com
+              {email || 'N/A'}
             </p>
           </div>
         </div>
@@ -450,7 +624,7 @@ function ContactInfoSection() {
           <div>
             <p className="text-xs text-[#6c7aa5]">Phone No.</p>
             <p className="text-sm font-semibold text-[#0047ab]">
-              +63 9123 456 7891
+              {phone || 'N/A'}
             </p>
           </div>
         </div>
@@ -503,7 +677,17 @@ function ImportantInfoSection() {
   );
 }
 
-function BoardingPassCard() {
+function BoardingPassCard({ 
+  bookingReference,
+  passengerName,
+  passengerIndex,
+  totalPassengers,
+}: { 
+  bookingReference: string;
+  passengerName: string;
+  passengerIndex: number;
+  totalPassengers: number;
+}) {
   const barcodePattern = [2, 1, 1, 3, 1, 2, 1, 1, 2, 1, 3, 1, 2, 1, 1, 1, 2, 3, 1, 1, 2, 1, 1, 2, 1, 3, 2, 1, 1, 2, 1, 1, 3, 1, 2, 1, 1, 2, 1, 1, 2, 1, 3, 1];
   
   return (
@@ -521,8 +705,12 @@ function BoardingPassCard() {
             ))}
           </div>
         </div>
-        <div className="text-center">
-          <p className="text-base font-semibold text-[#001d45]">PNR192616</p>
+        <div className="text-center space-y-2">
+          <p className="text-base font-semibold text-[#001d45]">{bookingReference}</p>
+          <p className="text-sm font-semibold text-[#0047ab]">{passengerName}</p>
+          {totalPassengers > 1 && (
+            <p className="text-xs text-[#6c7aa5]">Passenger {passengerIndex + 1} of {totalPassengers}</p>
+          )}
         </div>
         <div className="text-center pt-2">
           <p className="text-sm text-[#6c7aa5]">
@@ -534,12 +722,21 @@ function BoardingPassCard() {
   );
 }
 
-function ConfirmationActionButtons() {
+function ConfirmationActionButtons({ 
+  onDownloadPDF, 
+  onPrintTicket 
+}: { 
+  onDownloadPDF: () => void;
+  onPrintTicket: () => void;
+}) {
+  const router = useRouter();
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-4 justify-center">
         <button
           type="button"
+          onClick={onDownloadPDF}
           className="flex items-center justify-center gap-2 rounded-lg bg-[#0047ab] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#003d9e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0047ab] w-auto max-w-[180px]"
         >
           <FaDownload className="h-4 w-4" />
@@ -547,6 +744,7 @@ function ConfirmationActionButtons() {
         </button>
         <button
           type="button"
+          onClick={onPrintTicket}
           className="flex items-center justify-center gap-2 rounded-lg bg-[#6c7aa5] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#5a6889] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6c7aa5] w-auto max-w-[180px]"
         >
           <FaDownload className="h-4 w-4" />
@@ -562,6 +760,7 @@ function ConfirmationActionButtons() {
         </Link>
         <button
           type="button"
+          onClick={() => router.push('/get-started')}
           className="rounded-lg bg-[#0047ab] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#003d9e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0047ab] w-auto max-w-[240px]"
         >
           Continue for New Booking

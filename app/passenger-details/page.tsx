@@ -6,6 +6,7 @@ import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import airports from "@/lib/data/airports.json";
 import BookingProgressIndicator from "@/components/booking-progress-indicator";
+import { savePassengersAction } from "@/server/actions/savePassengers";
 import {
   FaUser,
   FaPlane,
@@ -428,6 +429,34 @@ function PassengerBookingForm({
     setActivePassengerIndex((idx) => Math.min(totalPassengers - 1, idx + 1));
   };
 
+  const validatePassengers = (): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+    
+    passengerInfos.forEach((passenger, index) => {
+      const label = passengerLabels[index] || `Passenger ${index + 1}`;
+      
+      if (!passenger.firstName.trim()) {
+        errors.push(`${label}: First name is required`);
+      }
+      if (!passenger.lastName.trim()) {
+        errors.push(`${label}: Last name is required`);
+      }
+      if (!passenger.email.trim()) {
+        errors.push(`${label}: Email is required`);
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(passenger.email)) {
+        errors.push(`${label}: Valid email is required`);
+      }
+      if (!passenger.birthDate) {
+        errors.push(`${label}: Date of birth is required`);
+      }
+    });
+    
+    return {
+      isValid: errors.length === 0,
+      errors,
+    };
+  };
+
   return (
     <div className="bg-[#f5f7fb] px-8 py-12 md:px-16">
       <div className="mx-auto max-w-7xl">
@@ -460,7 +489,12 @@ function PassengerBookingForm({
               formatTime={formatTime}
             />
             <PaymentMethodSection />
-            <FormActionButtons />
+            <FormActionButtons 
+              passengerInfos={passengerInfos}
+              adults={adults}
+              children={children}
+              validatePassengers={validatePassengers}
+            />
           </div>
         </div>
       </div>
@@ -804,9 +838,29 @@ function PrivacyPolicyCheckbox() {
   );
 }
 
-function FormActionButtons() {
+function FormActionButtons({
+  passengerInfos,
+  adults,
+  children,
+  validatePassengers,
+}: {
+  passengerInfos: Array<{
+    firstName: string;
+    lastName: string;
+    middleInitial: string;
+    contactNumber: string;
+    email: string;
+    sex: string;
+    birthDate: string;
+  }>;
+  adults: number;
+  children: number;
+  validatePassengers: () => { isValid: boolean; errors: string[] };
+}) {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [isSaving, setIsSaving] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleBack = () => {
     const params = new URLSearchParams();
@@ -814,70 +868,113 @@ function FormActionButtons() {
     const destination = searchParams.get('destination');
     const departureDate = searchParams.get('departureDate');
     const returnDate = searchParams.get('returnDate');
-    const adults = searchParams.get('adults');
-    const children = searchParams.get('children');
+    const adultsParam = searchParams.get('adults');
+    const childrenParam = searchParams.get('children');
 
     if (origin) params.set('origin', origin);
     if (destination) params.set('destination', destination);
     if (departureDate) params.set('departureDate', departureDate);
     if (returnDate) params.set('returnDate', returnDate);
-    if (adults) params.set('adults', adults);
-    if (children) params.set('children', children);
+    if (adultsParam) params.set('adults', adultsParam);
+    if (childrenParam) params.set('children', childrenParam);
 
     window.location.href = `/search-flights?${params.toString()}`;
   };
 
-  const handleContinueToAddOns = () => {
-    const params = new URLSearchParams();
+  const handleContinueToAddOns = async () => {
+    setValidationError(null);
     
-    // Read flight IDs from search params
-    const departureFlightId = searchParams.get('departureFlightId') || '';
-    const returnFlightId = searchParams.get('returnFlightId') || '';
-    const flightId = searchParams.get('flightId') || '';
-    
-    // Determine if round trip: has both departure and return flight IDs
-    const isRoundTrip = departureFlightId !== '' && returnFlightId !== '';
-    
-    // Copy all existing params
-    searchParams.forEach((value, key) => {
-      params.set(key, value);
-    });
-    
-    // Map flight ID parameter names to match what add-ons page expects
-    if (isRoundTrip) {
-      // Round trip: map departureFlightId -> departingFlightId, returnFlightId -> returningFlightId
-      if (departureFlightId) {
-        params.set('departingFlightId', departureFlightId);
-      }
-      if (returnFlightId) {
-        params.set('returningFlightId', returnFlightId);
-      }
-    } else {
-      // One-way: map flightId -> departingFlightId
-      if (flightId) {
-        params.set('departingFlightId', flightId);
-      }
+    const validation = validatePassengers();
+    if (!validation.isValid) {
+      setValidationError(validation.errors.join('. '));
+      return;
     }
-    
-    router.push(`/add-ons?${params.toString()}`);
+
+    setIsSaving(true);
+
+    try {
+      const passengersToSave = passengerInfos.map((passenger, index) => {
+        const passengerType = index < adults ? 'adult' : 'child';
+        return {
+          firstName: passenger.firstName.trim(),
+          lastName: passenger.lastName.trim(),
+          middleInitial: passenger.middleInitial?.trim() || undefined,
+          email: passenger.email.trim(),
+          contactNumber: passenger.contactNumber?.trim() || undefined,
+          sex: passenger.sex,
+          birthDate: passenger.birthDate,
+          passengerType,
+        };
+      });
+
+      const result = await savePassengersAction(passengersToSave);
+
+      if (!result.success || !result.passengerIds) {
+        setValidationError(result.error || 'Failed to save passenger details');
+        setIsSaving(false);
+        return;
+      }
+
+      const params = new URLSearchParams();
+      
+      const departureFlightId = searchParams.get('departureFlightId') || '';
+      const returnFlightId = searchParams.get('returnFlightId') || '';
+      const flightId = searchParams.get('flightId') || '';
+      
+      const isRoundTrip = departureFlightId !== '' && returnFlightId !== '';
+      
+      searchParams.forEach((value, key) => {
+        params.set(key, value);
+      });
+      
+      if (isRoundTrip) {
+        if (departureFlightId) {
+          params.set('departingFlightId', departureFlightId);
+        }
+        if (returnFlightId) {
+          params.set('returningFlightId', returnFlightId);
+        }
+      } else {
+        if (flightId) {
+          params.set('departingFlightId', flightId);
+        }
+      }
+      
+      params.set('passengerIds', JSON.stringify(result.passengerIds));
+      
+      router.push(`/add-ons?${params.toString()}`);
+    } catch (error) {
+      setValidationError(error instanceof Error ? error.message : 'Failed to save passenger details');
+      setIsSaving(false);
+    }
   };
 
   return (
-    <div className="mt-8 flex flex-col gap-4 border-t border-[#dbe5ff] pt-6 sm:flex-row sm:justify-between">
-      <button
-        type="button"
-        onClick={handleBack}
-        className="rounded-lg border border-[#dbe5ff] bg-white px-8 py-3 text-sm font-semibold text-[#6c7aa5] transition hover:bg-[#f5f7fb] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0047ab]"
-      >
-        Back
-      </button>
-      <button
-        type="button"
-        onClick={handleContinueToAddOns}
-        className="rounded-lg bg-[#0047ab] px-8 py-3 text-sm font-semibold text-white transition hover:bg-[#003d9e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0047ab]"
-      >
-        Continue
-      </button>
+    <div className="mt-8 space-y-4 border-t border-[#dbe5ff] pt-6">
+      {validationError && (
+        <div className="rounded-lg bg-red-50 border border-red-200 p-4">
+          <p className="text-sm font-semibold text-red-800">Validation Error</p>
+          <p className="text-sm text-red-700 mt-1">{validationError}</p>
+        </div>
+      )}
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
+        <button
+          type="button"
+          onClick={handleBack}
+          disabled={isSaving}
+          className="rounded-lg border border-[#dbe5ff] bg-white px-8 py-3 text-sm font-semibold text-[#6c7aa5] transition hover:bg-[#f5f7fb] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0047ab] disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Back
+        </button>
+        <button
+          type="button"
+          onClick={handleContinueToAddOns}
+          disabled={isSaving}
+          className="rounded-lg bg-[#0047ab] px-8 py-3 text-sm font-semibold text-white transition hover:bg-[#003d9e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0047ab] disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSaving ? 'Saving...' : 'Continue'}
+        </button>
+      </div>
     </div>
   );
 }

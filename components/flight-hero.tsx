@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   FaPlaneDeparture,
@@ -214,6 +214,16 @@ function DateField({
   minDate,
   className = "",
 }: DateFieldProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const tryShowPicker = () => {
+    try {
+      inputRef.current?.showPicker?.();
+    } catch {
+      // Some browsers may block showPicker; fail quietly.
+    }
+  };
+
   const formatDate = (dateString: string): string => {
     if (!dateString) return `Select ${label.toLowerCase()}`;
     const date = new Date(dateString);
@@ -245,6 +255,9 @@ function DateField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           min={minDate}
+          ref={inputRef}
+          onFocus={tryShowPicker}
+          onPointerDown={tryShowPicker}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           style={{ fontSize: '1.125rem', zIndex: 20 }}
         />

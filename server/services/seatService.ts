@@ -35,7 +35,7 @@ export async function getAvailableSeatsByFlight(flightId: string, cabinClass?: s
     .from('seats')
     .select('*')
     .eq('flight_id', flightId)
-    .or(`status.eq.available,or(status.eq.held,hold_expires_at.lt.${now})`);
+    .or(`status.eq.available,and(status.eq.held,or(hold_expires_at.is.null,hold_expires_at.lt.${now}))`);
   
   if (cabinClass) {
     query = query.eq('cabin_class', cabinClass);

@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS flights (
   departure_time TIME NOT NULL,
   arrival_time TIME NOT NULL,
   price DECIMAL(10, 2) NOT NULL,
+  flight_number VARCHAR(20) UNIQUE,
   available_seats INTEGER NOT NULL DEFAULT 180,
   cabin_class VARCHAR(20) NOT NULL DEFAULT 'Economy',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

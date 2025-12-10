@@ -18,10 +18,25 @@ interface Seat {
   price: number;
 }
 
+type PassengerMeta = { id: string; label: string };
+
+type SeatChoicesByPassenger = Record<
+  string,
+  {
+    status: "selected" | "pending";
+    departureSeatIds: string[];
+    returnSeatIds: string[];
+  }
+>;
+
 interface SeatSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (departureSeats: Array<{ id: string; price: number }>, returnSeats: Array<{ id: string; price: number }>) => void;
+  onConfirm: (payload: {
+    seatSelectionsByPassenger: SeatChoicesByPassenger;
+    departureSeats: Array<{ id: string; price: number }>;
+    returnSeats: Array<{ id: string; price: number }>;
+  }) => void;
   departingFlightId?: string;
   returningFlightId?: string;
   departureCabinClass?: string;
@@ -31,6 +46,7 @@ interface SeatSelectionModalProps {
   isRoundTrip?: boolean;
   initialDepartureSeats?: Array<{ id: string; price: number }>;
   initialReturnSeats?: Array<{ id: string; price: number }>;
+  passengers?: PassengerMeta[];
 }
 
 function getRowRangeForCabin(cabinClass: CabinClass): { minRow: number; maxRow: number } {
@@ -158,7 +174,7 @@ function ExitMarker({ row }: { row: number }) {
       <div className="w-8"></div>
       <div className="flex-1 flex items-center justify-center">
         <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border-2 border-red-300 rounded-md shadow-sm">
-          <span className="text-sm font-bold text-red-600 uppercase tracking-wide">EXIT</span>
+          <span className="text-sm font-bold text-red-600 uppercase tracking-wide">EXIT ROW {row}</span>
         </div>
       </div>
     </div>
@@ -178,21 +194,41 @@ export default function SeatSelectionModal({
   isRoundTrip = false,
   initialDepartureSeats = [],
   initialReturnSeats = [],
+  passengers = [],
 }: SeatSelectionModalProps) {
+  const totalPassengers = Math.max(1, passengers.length || adults + children);
+  const normalizedPassengers: PassengerMeta[] =
+    passengers.length > 0
+      ? passengers
+      : Array.from({ length: totalPassengers }, (_, idx) => ({
+          id: `passenger-${idx + 1}`,
+          label: `Passenger ${idx + 1}`,
+        }));
+
   const [currentSlide, setCurrentSlide] = useState<'departure' | 'return'>('departure');
-  const [departureSeats, setDepartureSeats] = useState<Array<{ id: string; price: number }>>(initialDepartureSeats);
-  const [returnSeats, setReturnSeats] = useState<Array<{ id: string; price: number }>>(initialReturnSeats);
+  const [currentPassengerId, setCurrentPassengerId] = useState<string>(normalizedPassengers[0]?.id || '');
+  const [seatChoicesByPassenger, setSeatChoicesByPassenger] = useState<SeatChoicesByPassenger>(() => {
+    const base: SeatChoicesByPassenger = {};
+    normalizedPassengers.forEach((p, idx) => {
+      base[p.id] = {
+        status: idx === 0 && (initialDepartureSeats.length > 0 || initialReturnSeats.length > 0) ? "selected" : "pending",
+        departureSeatIds: idx === 0 ? initialDepartureSeats.map((s) => s.id) : [],
+        returnSeatIds: idx === 0 ? initialReturnSeats.map((s) => s.id) : [],
+      };
+    });
+    return base;
+  });
   const [hoveredSeat, setHoveredSeat] = useState<string | null>(null);
   const [showSeatType, setShowSeatType] = useState(false);
   const [departureSeatsData, setDepartureSeatsData] = useState<Seat[]>([]);
   const [returnSeatsData, setReturnSeatsData] = useState<Seat[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasAutoAdvanced, setHasAutoAdvanced] = useState(false);
-  
-  const currentSeats = currentSlide === 'departure' ? departureSeatsData : returnSeatsData;
-  const currentSelectedSeats = currentSlide === 'departure' ? departureSeats : returnSeats;
-  const currentFlightId = currentSlide === 'departure' ? departingFlightId : returningFlightId;
+
+  const seatPriceMap = [...departureSeatsData, ...returnSeatsData].reduce<Record<string, number>>((acc, seat) => {
+    acc[seat.id] = seat.price;
+    return acc;
+  }, {});
   const currentCabinClass = currentSlide === 'departure' ? departureCabinClass : returnCabinClass;
 
   const normalizeCabinClass = (cabin: string): string => {
@@ -269,14 +305,12 @@ export default function SeatSelectionModal({
     }
   }, [departingFlightId, returningFlightId, departureCabinClass, returnCabinClass]);
 
-  const totalPassengers = adults + children;
-  const canProceedToReturn = departureSeats.length === totalPassengers;
-  const canConfirm = departureSeats.length === totalPassengers && (!isRoundTrip || returnSeats.length === totalPassengers);
+  const canProceedToReturn = true;
+  const canConfirm = true;
 
   useEffect(() => {
     if (isOpen) {
       setCurrentSlide('departure');
-      setHasAutoAdvanced(false);
       if (departingFlightId) {
         loadSeatsForSlide('departure');
       }
@@ -292,20 +326,8 @@ export default function SeatSelectionModal({
     }
   }, [currentSlide, isOpen, returningFlightId, returnSeatsData.length, loadSeatsForSlide]);
 
-  useEffect(() => {
-    if (isRoundTrip && currentSlide === 'departure' && canProceedToReturn && !hasAutoAdvanced) {
-      const timer = setTimeout(() => {
-        setCurrentSlide('return');
-        setHasAutoAdvanced(true);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [departureSeats.length, totalPassengers, isRoundTrip, currentSlide, canProceedToReturn, hasAutoAdvanced]);
-
   if (!isOpen) return null;
 
-  const normalizedCurrentCabinClass = normalizeToComponentCabinClass(currentCabinClass);
-  const seatLetters = getSeatLettersForCabin(normalizedCurrentCabinClass);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-PH", {
@@ -315,32 +337,34 @@ export default function SeatSelectionModal({
     }).format(price);
   };
 
-  const handleSeatClick = (seatId: string, status: SeatStatus, price: number) => {
+  const handleSeatClick = (seatId: string, status: SeatStatus) => {
     if (status === "unavailable" || status === "held") return;
 
-    if (currentSlide === 'departure') {
-      setDepartureSeats((prev) => {
-        const existingIndex = prev.findIndex((s) => s.id === seatId);
-        if (existingIndex >= 0) {
-          return prev.filter((s) => s.id !== seatId);
-        }
-        if (prev.length >= totalPassengers) {
-          return prev;
-        }
-        return [...prev, { id: seatId, price }];
+    setSeatChoicesByPassenger((prev) => {
+      const updated: SeatChoicesByPassenger = { ...prev };
+      const segmentKey = currentSlide === 'departure' ? 'departureSeatIds' : 'returnSeatIds';
+
+      Object.keys(updated).forEach((pid) => {
+        updated[pid] = {
+          ...updated[pid],
+          [segmentKey]: updated[pid][segmentKey].filter((id) => id !== seatId),
+        };
       });
-    } else {
-      setReturnSeats((prev) => {
-        const existingIndex = prev.findIndex((s) => s.id === seatId);
-        if (existingIndex >= 0) {
-          return prev.filter((s) => s.id !== seatId);
-        }
-        if (prev.length >= totalPassengers) {
-          return prev;
-        }
-        return [...prev, { id: seatId, price }];
-      });
-    }
+
+      const current = updated[currentPassengerId];
+      if (!current) return prev;
+
+      const alreadySelected = current[segmentKey].includes(seatId);
+      const nextSeatIds = alreadySelected ? [] : [seatId];
+
+      updated[currentPassengerId] = {
+        ...current,
+        status: nextSeatIds.length > 0 ? 'selected' : current.status,
+        [segmentKey]: nextSeatIds,
+      };
+
+      return updated;
+    });
   };
 
   const handleNext = () => {
@@ -353,17 +377,34 @@ export default function SeatSelectionModal({
   const handlePrevious = () => {
     if (currentSlide === 'return') {
       setCurrentSlide('departure');
-      setHasAutoAdvanced(true); // Prevent auto-advance when user manually goes back
     }
   };
 
   const handleConfirm = () => {
-    onConfirm(departureSeats, isRoundTrip ? returnSeats : []);
+    const departureSeats = Object.values(seatChoicesByPassenger)
+      .flatMap((p) => p.departureSeatIds)
+      .map((id) => ({ id, price: seatPriceMap[id] || 0 }));
+
+    const returnSeats = isRoundTrip
+      ? Object.values(seatChoicesByPassenger)
+          .flatMap((p) => p.returnSeatIds)
+          .map((id) => ({ id, price: seatPriceMap[id] || 0 }))
+      : [];
+
+    onConfirm({
+      seatSelectionsByPassenger: seatChoicesByPassenger,
+      departureSeats,
+      returnSeats,
+    });
     onClose();
   };
 
-  const currentSelectedSeatsTotal = currentSelectedSeats.reduce((sum, seat) => sum + seat.price, 0);
-  const currentSelectedSeatIds = currentSelectedSeats.map((s) => s.id);
+  const currentPassenger = seatChoicesByPassenger[currentPassengerId];
+  const currentSelectedSeatIds =
+    currentSlide === 'departure'
+      ? currentPassenger?.departureSeatIds || []
+      : currentPassenger?.returnSeatIds || [];
+  const currentSelectedSeatsTotal = currentSelectedSeatIds.reduce((sum, seatId) => sum + (seatPriceMap[seatId] || 0), 0);
 
   const getSeatColor = (status: SeatStatus, isHovered: boolean, seatId: string) => {
     const isSelected = currentSelectedSeatIds.includes(seatId);
@@ -406,9 +447,9 @@ export default function SeatSelectionModal({
     return `Rows ${rowRange.minRow}-${rowRange.maxRow}`;
   };
 
-  const groupedSeats = groupSeatsByRow(currentSeats);
   const cabinDisplay = getCabinClassDisplay(currentCabinClass);
-  const rowRangeDisplay = getRowRangeDisplay(normalizedCurrentCabinClass);
+  const departureSelectedIds = Object.values(seatChoicesByPassenger).flatMap((p) => p.departureSeatIds);
+  const returnSelectedIds = Object.values(seatChoicesByPassenger).flatMap((p) => p.returnSeatIds);
 
   return (
     <div
@@ -419,43 +460,76 @@ export default function SeatSelectionModal({
         className="relative w-full max-w-6xl h-[90vh] flex flex-col rounded-lg bg-white shadow-xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 flex-shrink-0">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h2 className="text-2xl font-bold text-[#001d45]">
-                Select Your Seats
-                {isRoundTrip && (
-                  <span className="text-lg text-[#6c7aa5] ml-2">
-                    ({currentSlide === 'departure' ? 'Departure' : 'Return'} Flight)
-                  </span>
-                )}
-              </h2>
+        <div className="flex flex-col gap-3 border-b border-gray-200 px-6 py-4 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <h2 className="text-2xl font-bold text-[#001d45]">
+                  Select Your Seats
+                  {isRoundTrip && (
+                    <span className="text-lg text-[#6c7aa5] ml-2">
+                      ({currentSlide === 'departure' ? 'Departure' : 'Return'} Flight)
+                    </span>
+                  )}
+                </h2>
+              </div>
+              <div className="flex items-center gap-4">
+                <p className="text-sm text-[#6c7aa5]">
+                  Click on available seats to select them • Only {cabinDisplay.name.toLowerCase()} seats are shown
+                </p>
+              </div>
+              {error && (
+                <div className="mt-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-4">
-              <p className="text-sm text-[#6c7aa5]">
-                Click on available seats to select them • Only {cabinDisplay.name.toLowerCase()} seats are shown
-              </p>
+              <Legend />
+              <button
+                onClick={() => setShowSeatType(!showSeatType)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition ${
+                  showSeatType
+                    ? 'bg-[#0047ab] text-white border-[#0047ab] hover:bg-[#003d9e]'
+                    : 'border-[#dbe5ff] bg-white text-sm font-semibold text-[#0047ab] hover:bg-[#eef2ff]'
+                }`}
+              >
+                Show Seat Type
+              </button>
+              <button
+                onClick={onClose}
+                className="rounded-full p-2 text-[#6c7aa5] hover:bg-[#f5f7fb] transition"
+                aria-label="Close modal"
+              >
+                <FaXmark className="h-5 w-5" />
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <Legend />
-            <button
-              onClick={() => setShowSeatType(!showSeatType)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition ${
-                showSeatType
-                  ? 'bg-[#0047ab] text-white border-[#0047ab] hover:bg-[#003d9e]'
-                  : 'border-[#dbe5ff] bg-white text-sm font-semibold text-[#0047ab] hover:bg-[#eef2ff]'
-              }`}
-            >
-              Show Seat Type
-            </button>
-            <button
-              onClick={onClose}
-              className="rounded-full p-2 text-[#6c7aa5] hover:bg-[#f5f7fb] transition"
-              aria-label="Close modal"
-            >
-              <FaXmark className="h-5 w-5" />
-            </button>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {normalizedPassengers.map((p) => {
+              const depCount = seatChoicesByPassenger[p.id]?.departureSeatIds.length || 0;
+              const retCount = seatChoicesByPassenger[p.id]?.returnSeatIds.length || 0;
+              const totalCount = depCount + retCount;
+              const isPending = seatChoicesByPassenger[p.id]?.status === 'pending';
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setCurrentPassengerId(p.id)}
+                  className={`rounded-full px-4 py-2 text-sm font-semibold border transition ${
+                    currentPassengerId === p.id
+                      ? 'bg-[#0047ab] text-white border-[#0047ab]'
+                      : 'bg-white text-[#0047ab] border-[#dbe5ff] hover:bg-[#f5f7fb]'
+                  }`}
+                >
+                  {p.label}
+                  <span className="ml-2 text-xs font-normal">
+                    {isPending ? '(pending)' : `(${totalCount})`}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -542,58 +616,59 @@ export default function SeatSelectionModal({
         </div>
 
         <div className="border-t border-gray-200 bg-[#f5f7fb] px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              {currentSelectedSeats.length > 0 && (
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <FaChair className="h-5 w-5 text-[#0047ab]" />
-                    <span className="text-sm font-semibold text-[#001d45]">
-                      {currentSelectedSeats.length} / {totalPassengers} seat{totalPassengers > 1 ? "s" : ""} selected
-                      {isRoundTrip && (
-                        <span className="text-xs text-[#6c7aa5] ml-2">
-                          ({currentSlide === 'departure' ? 'Departure' : 'Return'})
-                        </span>
-                      )}
-                    </span>
-                    <span className="text-sm text-[#6c7aa5]">
-                      ({currentSelectedSeatIds.join(", ")})
-                    </span>
-                    <span className="text-sm font-semibold text-[#0047ab]">
-                      • {formatPrice(currentSelectedSeatsTotal)}
-                    </span>
-                  </div>
-                  {currentSelectedSeats.length >= totalPassengers && (
-                    <span className="text-xs font-semibold text-green-600">
-                      Maximum reached
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <FaChair className="h-5 w-5 text-[#0047ab]" />
+                <span className="text-sm font-semibold text-[#001d45]">
+                  {currentPassenger?.status === 'pending'
+                    ? 'Seat assignment pending for this passenger'
+                    : `${currentSelectedSeatIds.length} seat${currentSelectedSeatIds.length === 1 ? '' : 's'} selected`}
+                  {isRoundTrip && (
+                    <span className="text-xs text-[#6c7aa5] ml-2">
+                      ({currentSlide === 'departure' ? 'Departure' : 'Return'})
                     </span>
                   )}
-                  <button
-                    onClick={() => {
-                      if (currentSlide === 'departure') {
-                        setDepartureSeats([]);
-                      } else {
-                        setReturnSeats([]);
-                      }
-                    }}
-                    className="text-xs font-semibold text-red-600 hover:text-red-700 underline transition"
-                  >
-                    Clear Selection
-                  </button>
-                </div>
-              )}
-              {currentSelectedSeats.length === 0 && (
-                <div className="text-sm text-[#6c7aa5]">
-                  Select {totalPassengers} seat{totalPassengers > 1 ? "s" : ""} ({adults} adult{adults !== 1 ? "s" : ""}{children > 0 ? `, ${children} child${children !== 1 ? "ren" : ""}` : ""})
-                </div>
-              )}
-              {isRoundTrip && (
-                <div className="text-xs text-[#6c7aa5]">
-                  Departure: {departureSeats.length}/{totalPassengers} • Return: {returnSeats.length}/{totalPassengers}
-                </div>
-              )}
+                </span>
+                {currentSelectedSeatIds.length > 0 && (
+                  <span className="text-sm text-[#6c7aa5]">
+                    ({currentSelectedSeatIds.join(", ")})
+                  </span>
+                )}
+                {currentSelectedSeatIds.length > 0 && (
+                  <span className="text-sm font-semibold text-[#0047ab]">
+                    • {formatPrice(currentSelectedSeatsTotal)}
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-[#6c7aa5]">
+                Departure: {departureSelectedIds.length} • Return: {isRoundTrip ? returnSelectedIds.length : 0}
+              </div>
+              <button
+                onClick={() => {
+                  setSeatChoicesByPassenger((prev) => {
+                    const next = { ...prev };
+                    const current = next[currentPassengerId];
+                    if (!current) return prev;
+                    const segmentKey = currentSlide === 'departure' ? 'departureSeatIds' : 'returnSeatIds';
+                    const newDeparture = segmentKey === 'departureSeatIds' ? [] : current.departureSeatIds;
+                    const newReturn = segmentKey === 'returnSeatIds' ? [] : current.returnSeatIds;
+                    next[currentPassengerId] = {
+                      ...current,
+                      departureSeatIds: newDeparture,
+                      returnSeatIds: newReturn,
+                      status: newDeparture.length > 0 || newReturn.length > 0 ? 'selected' : 'pending',
+                    };
+                    return next;
+                  });
+                }}
+                className="text-xs font-semibold text-red-600 hover:text-red-700 underline transition"
+              >
+                Clear selection
+              </button>
             </div>
-            <div className="flex items-center gap-3">
+
+            <div className="flex items-center justify-between">
               <button
                 onClick={onClose}
                 className="rounded-lg border border-[#dbe5ff] bg-white px-6 py-2 text-sm font-semibold text-[#6c7aa5] hover:bg-[#f5f7fb] transition"
@@ -601,7 +676,7 @@ export default function SeatSelectionModal({
                 Cancel
               </button>
               <div className="flex items-center gap-3">
-                {isRoundTrip && currentSlide === 'departure' && canProceedToReturn && (
+                {isRoundTrip && currentSlide === 'departure' && (
                   <button
                     onClick={handleNext}
                     className="rounded-lg bg-[#0047ab] px-6 py-2 text-sm font-semibold text-white hover:bg-[#003d9e] transition"
@@ -610,20 +685,13 @@ export default function SeatSelectionModal({
                   </button>
                 )}
                 {(!isRoundTrip || currentSlide === 'return') && (
-                  <>
-                    {currentSelectedSeats.length > 0 && (
-                      <span className="text-sm font-semibold text-[#001d45]">
-                        Total: {formatPrice(departureSeats.reduce((s, seat) => s + seat.price, 0) + returnSeats.reduce((s, seat) => s + seat.price, 0))}
-                      </span>
-                    )}
-                    <button
-                      onClick={handleConfirm}
-                      disabled={!canConfirm}
-                      className="rounded-lg bg-[#0047ab] px-6 py-2 text-sm font-semibold text-white hover:bg-[#003d9e] transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Confirm Selection
-                    </button>
-                  </>
+                  <button
+                    onClick={handleConfirm}
+                    disabled={!canConfirm}
+                    className="rounded-lg bg-[#0047ab] px-6 py-2 text-sm font-semibold text-white hover:bg-[#003d9e] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Confirm Selection
+                  </button>
                 )}
               </div>
             </div>
@@ -650,7 +718,7 @@ function SeatRow({
   seats: Seat[];
   selectedSeats: string[];
   hoveredSeat: string | null;
-  onSeatClick: (seatId: string, status: SeatStatus, price: number) => void;
+  onSeatClick: (seatId: string, status: SeatStatus) => void;
   onSeatHover: (seatId: string | null) => void;
   showSeatType: boolean;
   getSeatColor: (status: SeatStatus, isHovered: boolean, seatId: string) => string;
@@ -659,7 +727,6 @@ function SeatRow({
   const cabinClass = seats[0]?.cabinClass;
   const isFirstClass = cabinClass === "first";
   const isBusiness = cabinClass === "business";
-  const isEconomy = cabinClass === "economy";
 
   const leftSeats = seats.filter((_, idx) => 
     isFirstClass ? idx < 1 : isBusiness ? idx < 2 : idx < 3
@@ -723,7 +790,7 @@ function SeatButton({
   seat: Seat;
   selectedSeats: string[];
   hoveredSeat: string | null;
-  onSeatClick: (seatId: string, status: SeatStatus, price: number) => void;
+  onSeatClick: (seatId: string, status: SeatStatus) => void;
   onSeatHover: (seatId: string | null) => void;
   showSeatType: boolean;
   getSeatColor: (status: SeatStatus, isHovered: boolean, seatId: string) => string;
@@ -744,7 +811,7 @@ function SeatButton({
     <div className="relative group">
       <button
         type="button"
-        onClick={() => onSeatClick(seat.id, seat.status, seat.price)}
+        onClick={() => onSeatClick(seat.id, seat.status)}
         onMouseEnter={() => onSeatHover(seat.id)}
         onMouseLeave={() => onSeatHover(null)}
         disabled={seat.status === "unavailable" || seat.status === "held"}
@@ -891,7 +958,7 @@ function SeatMapContent({
   seats: Seat[];
   selectedSeats: string[];
   hoveredSeat: string | null;
-  onSeatClick: (seatId: string, status: SeatStatus, price: number) => void;
+  onSeatClick: (seatId: string, status: SeatStatus) => void;
   onSeatHover: (seatId: string | null) => void;
   showSeatType: boolean;
   getSeatColor: (status: SeatStatus, isHovered: boolean, seatId: string) => string;

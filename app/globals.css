@@ -23,3 +23,34 @@ body {
   color: var(--foreground);
   font-family: var(--font-onest), Arial, Helvetica, sans-serif;
 }
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-content {
+    page-break-inside: avoid;
+  }
+  
+  body {
+    background: white;
+    color: black;
+  }
+  
+  @page {
+    margin: 1cm;
+  }
+
+  /* Improve readability of section headings in PDF/print */
+  .print-content h3 {
+    display: inline-block;
+    background: #ffffff;
+    padding: 4px 8px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
+  }
+}
