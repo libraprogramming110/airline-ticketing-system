@@ -25,7 +25,7 @@ export async function searchFlights(
 ) {
   const { data: flights, error } = await supabase
     .from('flights')
-    .select('id, origin, destination, departure_date, departure_time, arrival_time, price, created_at, updated_at')
+    .select('id, origin, destination, departure_date, departure_time, arrival_time, price, cabin_class, created_at, updated_at')
     .eq('origin', origin)
     .eq('destination', destination)
     .eq('departure_date', departureDate)
