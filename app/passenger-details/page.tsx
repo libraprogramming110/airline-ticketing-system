@@ -380,7 +380,7 @@ function PassengerBookingForm({
     middleInitial: string;
     contactNumber: string;
     email: string;
-    sex: string;
+    sex: PassengerPayload['sex'];
     birthDate: string;
   };
 
@@ -408,7 +408,7 @@ function PassengerBookingForm({
       middleInitial: "",
       contactNumber: "",
       email: "",
-      sex: "Male",
+      sex: "Male" as PassengerPayload['sex'],
       birthDate: "",
     }))
   );
