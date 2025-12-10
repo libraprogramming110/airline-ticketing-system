@@ -9,13 +9,9 @@ const passengerSchema = z.object({
   middleInitial: z.string().optional(),
   email: z.string().email('Valid email is required'),
   contactNumber: z.string().optional(),
-  sex: z.enum(['Male', 'Female', 'Other'], {
-    errorMap: () => ({ message: 'Sex is required' }),
-  }),
+  sex: z.enum(['Male', 'Female', 'Other'], { error: 'Sex is required' }),
   birthDate: z.string().min(1, 'Date of birth is required'),
-  passengerType: z.enum(['adult', 'child'], {
-    errorMap: () => ({ message: 'Passenger type is required' }),
-  }),
+  passengerType: z.enum(['adult', 'child'], { error: 'Passenger type is required' }),
 });
 
 export type PassengerPayload = z.infer<typeof passengerSchema>;
