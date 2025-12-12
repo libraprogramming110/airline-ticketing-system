@@ -220,3 +220,37 @@ export async function getBookingByReference(bookingReference: string): Promise<B
     passengers,
   };
 }
+
+export async function verifyBookingAccess(
+  bookingReference: string,
+  lastNameOrEmail: string
+): Promise<{ success: boolean; booking?: BookingDetails; error?: string }> {
+  const booking = await getBookingByReference(bookingReference);
+
+  if (!booking) {
+    return {
+      success: false,
+      error: 'Booking not found',
+    };
+  }
+
+  const searchValue = lastNameOrEmail.toLowerCase().trim();
+  const passengerMatches = booking.passengers.some(
+    (passenger) =>
+      passenger.lastName.toLowerCase() === searchValue ||
+      passenger.email.toLowerCase() === searchValue
+  );
+
+  if (!passengerMatches) {
+    return {
+      success: false,
+      error: 'Last name or email does not match this booking',
+    };
+  }
+
+  return {
+    success: true,
+    booking,
+  };
+}
+

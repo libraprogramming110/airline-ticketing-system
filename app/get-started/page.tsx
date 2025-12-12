@@ -11,7 +11,6 @@ import { chooseIcon } from "@/lib/icons";
 
 const navLinks = [
   { label: "Blog", href: "/blog" },
-  { label: "Sign In", href: "/sign-in" },
 ];
 
 const manageOptions = [

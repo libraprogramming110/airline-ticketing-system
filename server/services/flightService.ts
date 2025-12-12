@@ -25,7 +25,7 @@ export async function searchFlights(
 ) {
   const { data: flights, error } = await supabase
     .from('flights')
-    .select('id, origin, destination, departure_date, departure_time, arrival_time, price, cabin_class, created_at, updated_at')
+    .select('id, origin, destination, departure_date, departure_time, arrival_time, price, created_at, updated_at')
     .eq('origin', origin)
     .eq('destination', destination)
     .eq('departure_date', departureDate)
@@ -60,11 +60,30 @@ export async function searchFlights(
       flightsWithSeatCount.push({
         ...flight,
         available_seats: availableSeats,
+        cabin_class: 'Economy',
       });
     }
   }
 
   return flightsWithSeatCount;
+}
+
+export async function searchFlightsByNumber(
+  flightNumber: string,
+  departureDate: string
+) {
+  const { data: flights, error } = await supabase
+    .from('flights')
+    .select('id, origin, destination, departure_date, departure_time, arrival_time, price, flight_number, created_at, updated_at')
+    .eq('flight_number', flightNumber)
+    .eq('departure_date', departureDate)
+    .order('departure_time', { ascending: true });
+
+  if (error) {
+    throw new Error(`Failed to search flight status: ${error.message}`);
+  }
+
+  return flights || [];
 }
 
 export async function getLowestPricesByDate(

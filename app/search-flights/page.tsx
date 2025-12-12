@@ -22,6 +22,7 @@ import FlightResults from "@/components/flight-results";
 import BookingProgressIndicator from "@/components/booking-progress-indicator";
 import { searchFlights, getLowestPricesByDate } from "@/server/services/flightService";
 import airports from "@/lib/data/airports.json";
+import { SiteHeader } from "@/components/site-header";
 
 type SearchParams = {
   origin?: string;
@@ -151,7 +152,7 @@ export default async function SearchFlightsPage({
 
   return (
     <div className="min-h-screen bg-[#f5f7fb]">
-      <HeaderSection />
+      <SiteHeader navLinks={[{ label: "Blog", href: "/blog" }]} />
       <BookingProgressIndicator currentStep={1} />
       <AvailableFlightsSection
         origin={originAirport?.name || origin}
@@ -273,12 +274,6 @@ function HeaderSection() {
             className="transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
             Blog
-          </a>
-          <a
-            href="/sign-in"
-            className="transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-          >
-            Sign In
           </a>
         </nav>
       </div>
