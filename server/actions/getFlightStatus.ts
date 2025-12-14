@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { searchFlights, searchFlightsByNumber } from '@/server/services/flightService';
+import { createClient } from '@/lib/supabase/server';
 
 const statusSchema = z.object({
   mode: z.enum(['route', 'flight']),
@@ -22,6 +22,76 @@ type FlightStatus = {
   price: number;
   status: string;
 };
+
+function mapFlightStatus(dbStatus: string | null): string {
+  if (dbStatus === 'cancelled') {
+    return 'Cancelled';
+  }
+  if (dbStatus === 'delayed') {
+    return 'Delayed';
+  }
+  return 'On time';
+}
+
+async function searchFlightsByRoute(
+  origin: string,
+  destination: string,
+  date: string
+): Promise<FlightStatus[]> {
+  const supabase = await createClient();
+  const { data: flights, error } = await supabase
+    .from('flights')
+    .select('id, origin, destination, departure_date, departure_time, arrival_time, price, flight_number, status')
+    .eq('origin', origin)
+    .eq('destination', destination)
+    .eq('departure_date', date)
+    .order('departure_time', { ascending: true });
+
+  if (error || !flights) {
+    return [];
+  }
+
+  return flights.map((f) => ({
+    id: f.id,
+    flightNumber: f.flight_number || f.id,
+    origin: f.origin,
+    destination: f.destination,
+    departure_date: f.departure_date,
+    departure_time: f.departure_time,
+    arrival_time: f.arrival_time,
+    price: parseFloat(f.price.toString()),
+    status: mapFlightStatus(f.status),
+  }));
+}
+
+async function searchFlightsByFlightNumber(
+  flightNumber: string,
+  date: string
+): Promise<FlightStatus[]> {
+  const supabase = await createClient();
+  const { data: flights, error } = await supabase
+    .from('flights')
+    .select('id, origin, destination, departure_date, departure_time, arrival_time, price, flight_number, status')
+    .eq('flight_number', flightNumber)
+    .eq('departure_date', date)
+    .order('departure_time', { ascending: true });
+
+  if (error || !flights) {
+    return [];
+  }
+
+  return flights.map((f) => ({
+    id: f.id,
+    flightNumber: f.flight_number || f.id,
+    origin: f.origin,
+    destination: f.destination,
+    departure_date: f.departure_date,
+    departure_time: f.departure_time,
+    arrival_time: f.arrival_time,
+    price: parseFloat(f.price.toString()),
+    status: mapFlightStatus(f.status),
+  }));
+}
 
 export async function getFlightStatusAction(formData: FormData) {
   try {
@@ -48,41 +118,20 @@ export async function getFlightStatusAction(formData: FormData) {
         return { success: false, error: 'Origin and destination are required' };
       }
 
-      const result = await searchFlights(
+      flights = await searchFlightsByRoute(
         validated.origin,
         validated.destination,
-        validated.date,
-        1 // passenger count not relevant here; use 1
+        validated.date
       );
-
-      flights = (result || []).map((f) => ({
-        id: f.id,
-        flightNumber: (f as any).flight_number || f.id,
-        origin: f.origin,
-        destination: f.destination,
-        departure_date: f.departure_date,
-        departure_time: f.departure_time,
-        arrival_time: f.arrival_time,
-        price: f.price,
-        status: 'On time', // static placeholder
-      }));
     } else {
       if (!validated.flightNumber) {
         return { success: false, error: 'Flight number is required' };
       }
 
-      const result = await searchFlightsByNumber(validated.flightNumber, validated.date);
-      flights = (result || []).map((f) => ({
-        id: f.id,
-        flightNumber: f.flight_number || f.id,
-        origin: f.origin,
-        destination: f.destination,
-        departure_date: f.departure_date,
-        departure_time: f.departure_time,
-        arrival_time: f.arrival_time,
-        price: f.price,
-        status: 'On time', // static placeholder
-      }));
+      flights = await searchFlightsByFlightNumber(
+        validated.flightNumber,
+        validated.date
+      );
     }
 
     return {

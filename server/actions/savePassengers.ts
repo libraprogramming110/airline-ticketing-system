@@ -1,6 +1,6 @@
 'use server';
 
-import { supabase } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 
 const passengerSchema = z.object({
@@ -33,6 +33,7 @@ export async function savePassengersAction(passengers: PassengerPayload[]) {
       passenger_type: p.passengerType,
     }));
 
+    const supabase = await createClient();
     const { data, error } = await supabase
       .from('passengers')
       .insert(passengersToInsert)

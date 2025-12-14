@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 export type Flight = {
   id: string;
@@ -23,12 +23,14 @@ export async function searchFlights(
   departureDate: string,
   passengerCount: number
 ) {
+  const supabase = await createClient();
   const { data: flights, error } = await supabase
     .from('flights')
     .select('id, origin, destination, departure_date, departure_time, arrival_time, price, created_at, updated_at')
     .eq('origin', origin)
     .eq('destination', destination)
     .eq('departure_date', departureDate)
+    .eq('status', 'active')
     .order('departure_time', { ascending: true });
 
   if (error) {
@@ -72,11 +74,13 @@ export async function searchFlightsByNumber(
   flightNumber: string,
   departureDate: string
 ) {
+  const supabase = await createClient();
   const { data: flights, error } = await supabase
     .from('flights')
     .select('id, origin, destination, departure_date, departure_time, arrival_time, price, flight_number, created_at, updated_at')
     .eq('flight_number', flightNumber)
     .eq('departure_date', departureDate)
+    .eq('status', 'active')
     .order('departure_time', { ascending: true });
 
   if (error) {
@@ -95,11 +99,13 @@ export async function getLowestPricesByDate(
     return [];
   }
 
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from('flights')
     .select('departure_date, price')
     .eq('origin', origin)
     .eq('destination', destination)
+    .eq('status', 'active')
     .gte('departure_date', startDate)
     .order('departure_date', { ascending: true })
     .order('price', { ascending: true });

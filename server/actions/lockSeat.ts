@@ -1,7 +1,7 @@
 'use server';
 
 import { lockSeats, calculateTotalAmount } from '@/server/services/bookingService';
-import { supabase } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 
 const lockSeatsSchema = z.object({
@@ -42,6 +42,7 @@ export async function lockSeatsAction(formData: FormData) {
 
     const validated = lockSeatsSchema.parse(rawData);
 
+    const supabase = await createClient();
     const { data: departingFlight, error: departingError } = await supabase
       .from('flights')
       .select('*')
@@ -52,6 +53,13 @@ export async function lockSeatsAction(formData: FormData) {
       return {
         success: false,
         error: 'Departing flight not found',
+      };
+    }
+
+    if (departingFlight.status === 'cancelled') {
+      return {
+        success: false,
+        error: 'Cannot book a cancelled flight',
       };
     }
 
@@ -69,6 +77,14 @@ export async function lockSeatsAction(formData: FormData) {
           error: 'Returning flight not found',
         };
       }
+
+      if (returnFlight.status === 'cancelled') {
+        return {
+          success: false,
+          error: 'Cannot book a cancelled flight',
+        };
+      }
+
       returningFlight = returnFlight;
     }
 

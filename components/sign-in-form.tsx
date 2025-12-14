@@ -1,6 +1,19 @@
 "use client";
 
-import { FaEye } from "react-icons/fa6";
+import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { type FieldError, type UseFormRegister, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { FaEye, FaEyeSlash } from "react-icons/fa6";
+import { signIn } from "@/server/actions/signIn";
+
+const signInSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type SignInFormData = z.infer<typeof signInSchema>;
 
 export default function SignInForm() {
   return (
@@ -22,43 +35,146 @@ function FormHeader() {
 }
 
 function SignInFormFields() {
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const searchParams = useSearchParams();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignInFormData>({
+    resolver: zodResolver(signInSchema),
+  });
+
+  const onSubmit = async (data: SignInFormData) => {
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("email", data.email);
+      formData.append("password", data.password);
+
+      const redirectTo = searchParams.get("redirect");
+      if (redirectTo) {
+        formData.append("redirectTo", redirectTo);
+      }
+
+      const result = await signIn(formData);
+
+      if (!result.success) {
+        setError(result.error || "Failed to sign in");
+        setIsSubmitting(false);
+      }
+    } catch (error) {
+      if (
+        error &&
+        typeof error === "object" &&
+        "digest" in error &&
+        typeof (error as { digest?: unknown }).digest === "string" &&
+        (error as { digest: string }).digest.includes("NEXT_REDIRECT")
+      ) {
+        return;
+      }
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('DOCTYPE') || errorMessage.includes('JSON') || errorMessage.includes('Unexpected token')) {
+        setError('Authentication service configuration error. Please check your Supabase project settings.');
+      } else {
+        setError(errorMessage || "An unexpected error occurred");
+      }
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <form className="mt-8 space-y-5">
-      <EmailField />
-      <PasswordField />
+    <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
+      {error && (
+        <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
+          {error}
+        </div>
+      )}
+      <EmailField register={register} error={errors.email} />
+      <PasswordField
+        register={register}
+        error={errors.password}
+        showPassword={showPassword}
+        onTogglePassword={() => setShowPassword(!showPassword)}
+      />
       <RememberMeSection />
-      <SignInButton />
+      <SignInButton isSubmitting={isSubmitting} />
     </form>
   );
 }
 
-function EmailField() {
+function EmailField({
+  register,
+  error,
+}: {
+  register: UseFormRegister<SignInFormData>;
+  error?: FieldError;
+}) {
   return (
     <label className="block space-y-2 text-sm font-semibold text-[#001d45]">
       <span>Email</span>
       <input
         type="email"
         placeholder="Enter your email"
-        className="w-full rounded-xl border border-[#dbe5ff] px-4 py-3 text-base outline-none transition focus:border-[#0047ab]"
+        {...register("email")}
+        className={`w-full rounded-xl border px-4 py-3 text-base outline-none transition ${
+          error
+            ? "border-red-300 focus:border-red-500"
+            : "border-[#dbe5ff] focus:border-[#0047ab]"
+        }`}
       />
+      {error && (
+        <p className="text-sm text-red-600">{error.message}</p>
+      )}
     </label>
   );
 }
 
-function PasswordField() {
+function PasswordField({
+  register,
+  error,
+  showPassword,
+  onTogglePassword,
+}: {
+  register: UseFormRegister<SignInFormData>;
+  error?: FieldError;
+  showPassword: boolean;
+  onTogglePassword: () => void;
+}) {
   return (
     <label className="block space-y-2 text-sm font-semibold text-[#001d45]">
       <span>Password</span>
       <div className="relative">
         <input
-          type="password"
+          type={showPassword ? "text" : "password"}
           placeholder="Enter password"
-          className="w-full rounded-xl border border-[#dbe5ff] px-4 py-3 text-base pr-10 outline-none transition focus:border-[#0047ab]"
+          {...register("password")}
+          className={`w-full rounded-xl border px-4 py-3 text-base pr-10 outline-none transition ${
+            error
+              ? "border-red-300 focus:border-red-500"
+              : "border-[#dbe5ff] focus:border-[#0047ab]"
+          }`}
         />
-        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[#8a96b7]">
-          <FaEye className="h-5 w-5" />
-        </span>
+        <button
+          type="button"
+          onClick={onTogglePassword}
+          className="absolute inset-y-0 right-3 flex items-center text-[#8a96b7] hover:text-[#0047ab] transition"
+        >
+          {showPassword ? (
+            <FaEyeSlash className="h-5 w-5" />
+          ) : (
+            <FaEye className="h-5 w-5" />
+          )}
+        </button>
       </div>
+      {error && (
+        <p className="text-sm text-red-600">{error.message}</p>
+      )}
     </label>
   );
 }
@@ -77,13 +193,14 @@ function RememberMeSection() {
   );
 }
 
-function SignInButton() {
+function SignInButton({ isSubmitting }: { isSubmitting: boolean }) {
   return (
     <button
-      type="button"
-      className="w-full rounded-full bg-[#0047ab] py-3 text-lg font-semibold text-white transition hover:bg-[#1d5ed6]"
+      type="submit"
+      disabled={isSubmitting}
+      className="w-full rounded-full bg-[#0047ab] py-3 text-lg font-semibold text-white transition hover:bg-[#1d5ed6] disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      Sign in
+      {isSubmitting ? "Signing in..." : "Sign in"}
     </button>
   );
 }
@@ -98,4 +215,3 @@ function CreateAccountLink() {
     </div>
   );
 }
-

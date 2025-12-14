@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 export type Seat = {
   id: string;
@@ -10,6 +10,7 @@ export type Seat = {
 };
 
 export async function getSeatsByFlight(flightId: string, cabinClass?: string) {
+  const supabase = await createClient();
   let query = supabase
     .from('seats')
     .select('*')
@@ -29,6 +30,7 @@ export async function getSeatsByFlight(flightId: string, cabinClass?: string) {
 }
 
 export async function getAvailableSeatsByFlight(flightId: string, cabinClass?: string) {
+  const supabase = await createClient();
   const now = new Date().toISOString();
   
   let query = supabase
@@ -51,6 +53,7 @@ export async function getAvailableSeatsByFlight(flightId: string, cabinClass?: s
 }
 
 export async function getAvailableSeatCountByCabin(flightId: string, cabinClass: string): Promise<number> {
+  const supabase = await createClient();
   const now = new Date().toISOString();
   
   const { data, error } = await supabase

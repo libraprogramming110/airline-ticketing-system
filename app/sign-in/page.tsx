@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 
+import { Suspense } from "react";
 import SignInForm from "@/components/sign-in-form";
 
 export default function SignInPage() {
@@ -18,7 +19,9 @@ export default function SignInPage() {
           alt="Omnira Airlines"
           className="h-auto w-48"
         />
-        <SignInForm />
+        <Suspense>
+          <SignInForm />
+        </Suspense>
       </div>
     </main>
   );

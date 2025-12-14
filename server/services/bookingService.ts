@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 export type BookingResult = {
   bookingId: string;
@@ -74,6 +74,7 @@ export async function lockSeats(
   totalAmount: number,
   passengerIds?: string[]
 ): Promise<BookingResult> {
+  const supabase = await createClient();
   const allSeatIds = [...departureSeatIds, ...returnSeatIds];
   
   const { data, error } = await supabase.rpc('lock_seats_and_create_booking', {
@@ -114,6 +115,7 @@ export async function processPayment(
   bookingId: string,
   paymentMethod: string
 ): Promise<void> {
+  const supabase = await createClient();
   const { data, error } = await supabase.rpc('process_payment', {
     p_booking_id: bookingId,
     p_payment_method: paymentMethod,
@@ -135,6 +137,7 @@ export async function processPayment(
 }
 
 export async function getBookingByReference(bookingReference: string): Promise<BookingDetails | null> {
+  const supabase = await createClient();
   const { data: booking, error: bookingError } = await supabase
     .from('bookings')
     .select(`

@@ -8,7 +8,7 @@ import BookingProgressIndicator from "@/components/booking-progress-indicator";
 import SeatSelectionModal from "@/components/seat-selection-modal";
 import { lockSeatsAction } from "@/server/actions/lockSeat";
 import { processPaymentAction } from "@/server/actions/processPayment";
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import {
   FaCircleCheck,
   FaClipboardList,
@@ -185,6 +185,7 @@ function AddOnsContent({
   useEffect(() => {
     const fetchPassengers = async () => {
       if (!passengerIds.length) return;
+      const supabase = createClient();
       const { data, error } = await supabase
         .from('passengers')
         .select('id, first_name, last_name')
@@ -343,6 +344,7 @@ function AddOnsContent({
     const fetchFlights = async () => {
       setIsLoadingFlights(true);
       try {
+        const supabase = createClient();
         if (departingFlightId) {
           const { data: depFlight, error: depError } = await supabase
             .from('flights')
