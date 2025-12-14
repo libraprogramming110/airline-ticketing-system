@@ -55,6 +55,14 @@ export type FlightWithId = {
   status: string;
 };
 
+export type PaginatedFlights = {
+  flights: FlightWithId[];
+  totalCount: number;
+  totalPages: number;
+  page: number;
+  pageSize: number;
+};
+
 export async function getDashboardStats(): Promise<DashboardStats> {
   const supabase = await createClient();
 
@@ -413,46 +421,66 @@ export async function getRecentBookings(limit: number = 5): Promise<RecentBookin
   return results.slice(0, limit);
 }
 
-export async function getAllFlights(): Promise<FlightWithId[]> {
+export async function getAllFlights(page: number = 1, pageSize: number = 10): Promise<PaginatedFlights> {
   const supabase = await createClient();
   const now = new Date().toISOString();
+
+  const safePageSize = Number.isFinite(pageSize) && pageSize > 0 ? Math.min(pageSize, 100) : 10;
+  const safePage = Number.isFinite(page) && page > 0 ? page : 1;
+  const from = (safePage - 1) * safePageSize;
+  const to = from + safePageSize - 1;
+
+  const { count: totalCount, error: countError } = await supabase
+    .from('flights')
+    .select('id', { count: 'exact', head: true });
 
   const { data: flights, error } = await supabase
     .from('flights')
     .select('flight_number, origin, destination, departure_date, departure_time, arrival_time, price, id, status')
     .order('departure_date', { ascending: true })
-    .order('departure_time', { ascending: true });
+    .order('departure_time', { ascending: true })
+    .range(from, to);
 
-  if (error || !flights) {
-    return [];
+  if (countError || totalCount === null || error || !flights) {
+    return {
+      flights: [],
+      totalCount: 0,
+      totalPages: 0,
+      page: safePage,
+      pageSize: safePageSize,
+    };
   }
 
-  const results: FlightWithId[] = [];
+  const seatCounts = await Promise.all(
+    flights.map(async (flight) => {
+      const { count } = await supabase
+        .from('seats')
+        .select('id', { count: 'exact', head: true })
+        .eq('flight_id', flight.id)
+        .or(`status.eq.available,and(status.eq.held,hold_expires_at.lt.${now})`);
 
-  for (const flight of flights) {
-    const { count } = await supabase
-      .from('seats')
-      .select('id', { count: 'exact', head: true })
-      .eq('flight_id', flight.id)
-      .or(`status.eq.available,and(status.eq.held,hold_expires_at.lt.${now})`);
+      return count || 0;
+    })
+  );
 
-    const availableSeats = count || 0;
+  const formatTime = (time: string) => {
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
 
-    const formatTime = (time: string) => {
-      const [hours, minutes] = time.split(':');
-      const hour = parseInt(hours);
-      const ampm = hour >= 12 ? 'PM' : 'AM';
-      const displayHour = hour % 12 || 12;
-      return `${displayHour}:${minutes} ${ampm}`;
-    };
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
 
-    const formatDate = (date: string) => {
-      return new Date(date).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
-    };
+  const results: FlightWithId[] = flights.map((flight, index) => {
+    const availableSeats = seatCounts[index] || 0;
 
     const departureFormatted = `${formatDate(flight.departure_date)} • ${formatTime(flight.departure_time)}`;
     const arrivalFormatted = `${formatDate(flight.departure_date)} • ${formatTime(flight.arrival_time)}`;
@@ -464,7 +492,7 @@ export async function getAllFlights(): Promise<FlightWithId[]> {
       minimumFractionDigits: 2,
     }).format(parseFloat(flight.price.toString()));
 
-    results.push({
+    return {
       id: flight.id,
       flight: flight.flight_number || 'N/A',
       price,
@@ -479,9 +507,17 @@ export async function getAllFlights(): Promise<FlightWithId[]> {
       arrivalTime: flight.arrival_time,
       priceNumber: parseFloat(flight.price.toString()),
       status: flight.status || 'active',
-    });
-  }
+    };
+  });
 
-  return results;
+  const totalPages = Math.max(1, Math.ceil(totalCount / safePageSize));
+
+  return {
+    flights: results,
+    totalCount,
+    totalPages,
+    page: safePage,
+    pageSize: safePageSize,
+  };
 }
 

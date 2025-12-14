@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FaPlane, FaPenToSquare, FaXmark, FaPlus, FaMagnifyingGlass, FaFilter } from "react-icons/fa6";
 import EditFlightModal from "./edit-flight-modal";
 import AddFlightModal from "./add-flight-modal";
@@ -26,16 +26,23 @@ type FlightData = {
 
 type FlightManagementClientProps = {
   flights: FlightData[];
+  currentPage: number;
+  totalPages: number;
 };
 
-export default function FlightManagementClient({ flights }: FlightManagementClientProps) {
+export default function FlightManagementClient({ flights, currentPage, totalPages }: FlightManagementClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
   const [editingFlight, setEditingFlight] = useState<FlightData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [cancellingFlightId, setCancellingFlightId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterValue, setFilterValue] = useState("All");
+
+  const currentPageFromUrl = Number(searchParams.get("page"));
+  const activePage = Number.isFinite(currentPageFromUrl) && currentPageFromUrl > 0 ? currentPageFromUrl : currentPage;
 
   const filteredFlights = flights.filter((flight) => {
     const matchesSearch =
@@ -84,8 +91,24 @@ export default function FlightManagementClient({ flights }: FlightManagementClie
     setCancellingFlightId(null);
   };
 
+  const handlePageChange = (page: number) => {
+    const safePage = Math.min(Math.max(page, 1), Math.max(totalPages, 1));
+    startTransition(() => {
+      router.push(`/admin/flights?page=${safePage}`);
+      router.refresh();
+    });
+  };
+
   return (
     <>
+      {isPending && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0b1324]/30 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4 rounded-2xl bg-white px-8 py-6 shadow-sm">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#dbe5ff] border-t-[#0b5ed7]" />
+            <p className="text-sm font-semibold text-[#001d45]">Loading...</p>
+          </div>
+        </div>
+      )}
       <section className="rounded-3xl bg-white shadow-sm">
         <div className="rounded-t-3xl bg-[#0b5ed7] px-6 py-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -204,6 +227,30 @@ export default function FlightManagementClient({ flights }: FlightManagementClie
               })
             )}
           </div>
+
+          {totalPages > 1 && (
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+              {Array.from({ length: totalPages }, (_, index) => {
+                const page = index + 1;
+                const isActive = page === activePage;
+
+                return (
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() => handlePageChange(page)}
+                    className={
+                      isActive
+                        ? "h-9 min-w-9 rounded-lg bg-[#0b5ed7] px-3 text-sm font-semibold text-white"
+                        : "h-9 min-w-9 rounded-lg border border-[#dbe5ff] bg-white px-3 text-sm font-semibold text-[#0b5ed7] hover:bg-[#0b5ed7]/5"
+                    }
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
